@@ -43,6 +43,18 @@ CAVEAT
   An EPOCROOT created using this tool is usually not usable as-is
 
   For a complete solution, see \"systemd-epocd\"
+
+SUPPORT
+
+  For more info about epocstrap, visit https://github.com/SymbianRevive
+
+LICENSE
+
+  0BSD
+
+AUTHORS
+
+  SymbianRevive
 EOF
 }
 
@@ -270,6 +282,12 @@ echo " export EPOCROOT=${REAL_EPOCROOT}"
 echo ' export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools'
 echo " export SBS_GCCE432BIN=${SBS_GCCE432BIN}"
 echo " export SBS_GCCX86BIN=${SBS_GCCX86BIN}"
-echo " export SBS_GCCX86INC=${SBS_GCC432INC}"
-echo " export SBS_GCCX86LIB=${SBS_GCC432LIB}"
+echo " export SBS_GCCX86INC=${SBS_GCCX86INC}"
+echo " export SBS_GCCX86LIB=${SBS_GCCX86LIB}"
 echo " export SBS_SHELL=${SBS_SHELL}"
+
+>&2 echo -e '\nYou will then be able to run SBSv2 "raptor" build system as follows:\n'
+>&2 echo ' sbs -c armv5_gcce -b /path/to/group/build.inf'
+
+>&2 echo 'Thanks a lot for choosing SymbianRevive!'
+>&2 echo 'For more info about epocstrap, visit https://github.com/SymbianRevive'
