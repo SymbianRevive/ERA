@@ -168,7 +168,7 @@ if [[ ! -e "${EPOCROOT}"/.CHECK_CASE ]] ; then
 
   >&2 echo "  ==> Will remount \"${REAL_EPOCROOT}\" to \"${EPOCROOT}\""
 
-  cicpoffs "${REAL_EPOCROOT}" "${EPOCROOT}"
+  cicpoffs -o attr_timeout=0 -o entry_timeout=0 "${REAL_EPOCROOT}" "${EPOCROOT}"
   trap 'fusermount -u "${EPOCROOT}" || fusermount -z -u "${EPOCROOT}" ||:' EXIT
   export EPOCROOT
 
