@@ -1,6 +1,35 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+_EPOCROOT_MOUNTED=0
+_TEMP_WORKDIR=""
+
+_cleanup () {
+  [[ -d "${_TEMP_WORKDIR}" ]] \
+    && rm -rf "${_TEMP_WORKDIR}" &>/dev/null \
+    || :
+
+  if (( _EPOCROOT_MOUNTED )) && mountpoint "${EPOCROOT}" &>/dev/null ; then
+    fusermount -u "${EPOCROOT}" &>/dev/null \
+      || fusermount -z -u "${EPOCROOT}" &>/dev/null \
+      || :
+    rmdir "${EPOCROOT}" &>/dev/null ||:
+  fi
+}
+
+_err () {
+  >&2 echo "Error $1 occurred at line $2"
+  _cleanup
+}
+
+_int () {
+  >&2 echo 'Interrupted...'
+  _cleanup
+}
+
+trap '_err $? ${LINENO}' ERR
+trap '_int' INT
+
 _DEBUG=0
 _OVERWRITE=0
 
@@ -168,8 +197,8 @@ if [[ ! -e "${EPOCROOT}"/.CHECK_CASE ]] ; then
 
   >&2 echo "  ==> Will remount \"${REAL_EPOCROOT}\" to \"${EPOCROOT}\""
 
+  _EPOCROOT_MOUNTED=1
   cicpoffs -o attr_timeout=0 -o entry_timeout=0 "${REAL_EPOCROOT}" "${EPOCROOT}"
-  trap 'fusermount -u "${EPOCROOT}" || fusermount -z -u "${EPOCROOT}" ||:' EXIT
   export EPOCROOT
 
   if [[ ! -e "${EPOCROOT}"/.CHECK_CASE ]] ; then
@@ -202,7 +231,6 @@ cat <<EOF >"${REAL_EPOCROOT}/epoc32/sbs_config/gcce.xml"
 EOF
 
 _TEMP_WORKDIR="$(mktemp -d)"
-trap 'rm -rf "$_TEMP_WORKDIR" &>/dev/null ||:' EXIT
 
 export PATH="${PATH}":"${REAL_EPOCROOT}"/epoc32/tools/sbs/bin:"${REAL_EPOCROOT}"/epoc32/tools
 export SBS_GCCE432BIN=$(dirname -- "$(command -v arm-none-symbianelf-gcc)")
@@ -303,4 +331,6 @@ echo " export SBS_SHELL=${SBS_SHELL}"
 >&2 echo ' sbs -c armv5_gcce -b /path/to/group/build.inf'
 
 >&2 echo -e '\nThanks a lot for choosing SymbianRevive!'
->&2 echo 'For more info about epocstrap, visit https://github.com/SymbianRevive'
+>&2 echo 'For more info about epocstrap and SymbianRevive, visit https://github.com/SymbianRevive'
+
+_cleanup
