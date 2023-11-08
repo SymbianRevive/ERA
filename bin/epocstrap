@@ -195,7 +195,7 @@ EOF
 _TEMP_WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$_TEMP_WORKDIR" &>/dev/null ||:' EXIT
 
-export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools
+export PATH="${PATH}":"${REAL_EPOCROOT}"/epoc32/tools/sbs/bin:"${REAL_EPOCROOT}"/epoc32/tools
 export SBS_GCCE432BIN=$(dirname -- "$(command -v arm-none-symbianelf-gcc)")
 export SBS_GCCX86BIN=$(dirname -- "$(command -v gcc)")
 export SBS_GCCX86INC=$(dirname -- "$(command -v gcc)")/../include
@@ -225,10 +225,10 @@ _multi_build () {
   fi
 }
 
-pushd "${_TEMP_WORKDIR}"/
+&>/dev/null pushd "${_TEMP_WORKDIR}"/
   >&2 echo -e ' ==> Downloading headers'
   git clone --depth 1 --single-branch -- "${SYMBIAN_HEADERS_REPO:-https://github.com/SymbianRevive/symbian-headers.git}" symbian-headers
-  pushd symbian-headers/
+  &>/dev/null pushd symbian-headers/
     >&2 echo -e ' ==> Installing headers'
     shopt -s nullglob
     cp -a ./* "${EPOCROOT}"/epoc32/include/
@@ -241,16 +241,16 @@ pushd "${_TEMP_WORKDIR}"/
     #  rmdir "${EPOCROOT}"/epoc32/include/gles
     #fi
     shopt -u nullglob
-  popd
+  &>/dev/null popd
 
   >&2 echo -e ' ==> Downloading build tool sources'
   git clone --depth 1 --single-branch -- "${SYMBIAN_BUILD_REPO:-https://github.com/SymbianRevive/symbian-build.git}" symbian-build
-  pushd symbian-build/
+  &>/dev/null pushd symbian-build/
     >&2 echo -e ' ==> Bootstrapping SBSv2 "raptor"'
     >&2 echo -e '  ==> Building SBSv2 "raptor"'
-    pushd cross-plat-dev-utils/
+    &>/dev/null pushd cross-plat-dev-utils/
       >&2 perl -I. build_raptor.pl
-    popd
+    &>/dev/null popd
 
     >&2 echo -e '  ==> Installing SBSv2 "raptor"'
     rm -rf "${EPOCROOT}"/epoc32/tools/sbs
@@ -262,22 +262,22 @@ pushd "${_TEMP_WORKDIR}"/
     >&2 echo -e '  ==> Building tools'
     readonly SYMBIAN_BUILD_TOOLS2_BUILDS=(e32tools/elf2e32 bintools/rcomp misctools/mifconv sistools/makesis)
     _multi_build _build_tool "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}"
-  popd
+  &>/dev/null popd
 
   >&2 echo -e ' ==> Bootstrapping import libraries'
   wget -O- "${SYMBIAN_IMPLIBS_URL:-https://github.com/SymbianRevive/symbian-implibs/releases/${SYMBIAN_IMPLIBS_TAG:-latest}/download/release_armv5.tar.lz4}" \
-    | tar -I lz4 -C "${EPOCROOT}" -xf-
+    | >&2 tar -I lz4 -C "${EPOCROOT}" -xf-
 
   #>&2 echo -e ' ==> Downloading import library sources'
   #git clone --depth 1 --single-branch -- "${SYMBIAN_IMPLIBS_REPO:-https://github.com/SymbianRevive/symbian-implibs.git}" symbian-implibs
   #>&2 echo -e ' ==> Building import libraries'
-  #pushd symbian-implibs/
+  #&>/dev/null pushd symbian-implibs/
   #  shopt -s nullglob globstar
   #  readonly SYMBIAN_BUILD_IMPLIB_BUILDS=(**/group/bld.inf)
   #  shopt -u nullglob globstar
   #  _multi_build _build_target "${SYMBIAN_BUILD_IMPLIB_BUILDS[@]}"
-  #popd
-popd
+  #&>/dev/null popd
+&>/dev/null popd
 
 >&2 echo -e '==> The environment is ready!'
 >&2 echo -e '\nYou can export the following environment variables now:\n'

@@ -1,3 +1,13 @@
 = EPOCstrap
 
 A simple tool for bootstrapping EPOCROOT instances.
+
+== Usage
+
+----
+$ git clone --single-branch https://github.com/SymbianRevive/epocstrap.git epocstrap/
+$ cd epocstrap/
+$ eval $(bin/epocstrap "$HOME/epocroot.real")
+$ export EPOCROOT=$HOME/epocroot
+$ cicpoffs "$HOME/epocroot.real" "$EPOCROOT"
+----
