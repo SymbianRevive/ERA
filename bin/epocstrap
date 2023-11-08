@@ -123,7 +123,7 @@ if [[ -e "${EPOCROOT}" ]] ; then
     done
     >&2 echo '0...'
     >&2 echo 'Now removing the EPOCROOT'
-    rm -rvf "${EPOCROOT}"[[ ! -z "$1" ]] \
+    rm -rvf "${EPOCROOT}"
   fi
 fi
 
@@ -265,6 +265,6 @@ popd
 echo " export EPOCROOT=${REAL_EPOCROOT}"
 echo ' export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools'
 echo " export SBS_GCCE432BIN=${SBS_GCCE432BIN}"
-echo " export SBS_GCCX86BIN=${SBS_GCCEX86BIN}"
-echo " export SBS_GCCX86INC=${SBS_GCCE432INC}"
-echo " export SBS_GCCX86LIB=${SBS_GCCE432LIB}"
+echo " export SBS_GCCX86BIN=${SBS_GCCX86BIN}"
+echo " export SBS_GCCX86INC=${SBS_GCC432INC}"
+echo " export SBS_GCCX86LIB=${SBS_GCC432LIB}"
