@@ -263,7 +263,7 @@ popd
 >&2 echo -e '\nYou can export the following environment variables now:\n'
 
 echo " export EPOCROOT=${REAL_EPOCROOT}"
-echo " export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools"
+echo ' export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools'
 echo " export SBS_GCCE432BIN=${SBS_GCCE432BIN}"
 echo " export SBS_GCCX86BIN=${SBS_GCCEX86BIN}"
 echo " export SBS_GCCX86INC=${SBS_GCCE432INC}"
