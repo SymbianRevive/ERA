@@ -183,7 +183,7 @@ else
 fi
 rm -f "${EPOCROOT}"/.check_case
 
-cat <<EOF >"${EPOCROOT}/epoc32/sbs_config/gcc.xml"
+cat <<EOF >"${REAL_EPOCROOT}/epoc32/sbs_config/gcc.xml"
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <build xmlns="http://symbian.com/xml/build" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symbian.com/xml/build ../../schema/build/2_0.xsd">
     <var name="root.changes">
@@ -231,7 +231,7 @@ _multi_build () {
   &>/dev/null pushd symbian-headers/
     >&2 echo -e ' ==> Installing headers'
     shopt -s nullglob
-    cp -a ./* "${EPOCROOT}"/epoc32/include/
+    cp -a ./* "${REAL_EPOCROOT}"/epoc32/include/
 
     #if (( ! _EPOCROOT_CASE_INSENSITIVE )) \
     #  && [[ -d "${EPOCROOT}"/epoc32/include/gles ]] \
@@ -253,8 +253,8 @@ _multi_build () {
     &>/dev/null popd
 
     >&2 echo -e '  ==> Installing SBSv2 "raptor"'
-    rm -rf "${EPOCROOT}"/epoc32/tools/sbs
-    cp -a sbsv2/raptor "${EPOCROOT}"/epoc32/tools/sbs
+    rm -rf "${REAL_EPOCROOT}"/epoc32/tools/sbs
+    cp -a sbsv2/raptor "${REAL_EPOCROOT}"/epoc32/tools/sbs
 
     >&2 echo -e ' ==> Bootstrapping tools2-x86'
     >&2 echo -e '  ==> Building libcrypto'
@@ -266,7 +266,7 @@ _multi_build () {
 
   >&2 echo -e ' ==> Bootstrapping import libraries'
   wget -O- "${SYMBIAN_IMPLIBS_URL:-https://github.com/SymbianRevive/symbian-implibs/releases/${SYMBIAN_IMPLIBS_TAG:-latest}/download/release_armv5.tar.lz4}" \
-    | >&2 tar -I lz4 -C "${EPOCROOT}" -xf-
+    | >&2 tar -I lz4 -C "${REAL_EPOCROOT}" -xf-
 
   #>&2 echo -e ' ==> Downloading import library sources'
   #git clone --depth 1 --single-branch -- "${SYMBIAN_IMPLIBS_REPO:-https://github.com/SymbianRevive/symbian-implibs.git}" symbian-implibs
