@@ -1,0 +1,3 @@
+= EPOCstrap
+
+A simple tool for bootstrapping EPOCROOT instances.

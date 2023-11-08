@@ -1,0 +1,270 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+_DEBUG=0
+_OVERWRITE=0
+
+_usage () {
+  >&2 echo "USAGE: $0 [-fFdh] [-j N] [-S N] [EPOCROOT]"
+}
+
+_help () {
+  _usage
+  >&2 cat <<EOF
+
+  Bootstraps an EPOCROOT
+
+  - If the EPOCROOT argument is not supplied, the EPOCROOT env is used instead
+  - If neither of the argument and the env are set, the new EPOCROOT is created
+    in "\$HOME/epocroot/"
+
+ARGUMENTS
+
+  EPOCROOT
+        target location for the new EPOCROOT
+
+OPTIONS
+  -f
+        overwrite any existing EPOCROOT
+  -F
+        wipe any existing EPOCROOT
+  -d
+        debug this script
+  -h
+        display this message
+  -j N
+        number of jobs per build
+  -s N
+        number of simultaneous builds
+        (please not that this is distinct from the number of jobs per build)
+
+CAVEAT
+
+  An EPOCROOT created using this tool is usually not usable as-is
+
+  For a complete solution, see \"systemd-epocd\"
+EOF
+}
+
+MAKEJOBS=${MAKEJOBS:-$(nproc)}
+SIMULTANEOUS_BUILDS=${SIMULTANEOUS_BUILDS:-1}
+
+export MAKEJOBS
+
+while getopts ':fFj:S:dh' o ; do
+  case "$o" in
+    f)
+      _OVERWRITE=1
+      ;;
+    F)
+      _OVERWRITE=2
+      ;;
+    d)
+      _DEBUG=1
+      ;;
+    j)
+      MAKEJOBS="${OPTARG}"
+      ;;
+    S)
+      SIMULTANEOUS_BUILDS="${OPTARG}"
+      ;;
+    h)
+      _help
+      exit 1
+      ;;
+    *)
+      _usage
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+(( _DEBUG )) \
+  && set -x
+
+declare -a REQUIRED_COMMANDS
+REQUIRED_COMMANDS=(tac git bash perl gcc g++ cpp ld arm-none-symbianelf-c++ arm-none-symbianelf-cpp arm-none-symbianelf-g++ arm-none-symbianelf-gcc arm-none-symbianelf-gcc-ar arm-none-symbianelf-gcc-nm arm-none-symbianelf-gcc-ranlib arm-none-symbianelf-gcov arm-none-symbianelf-gcov-dump arm-none-symbianelf-gcov-tool arm-none-symbianelf-lto-dump arm-none-symbianelf-addr2line arm-none-symbianelf-ar arm-none-symbianelf-as arm-none-symbianelf-c++filt arm-none-symbianelf-elfedit arm-none-symbianelf-gprof arm-none-symbianelf-ld arm-none-symbianelf-nm arm-none-symbianelf-objcopy arm-none-symbianelf-objdump arm-none-symbianelf-ranlib arm-none-symbianelf-readelf arm-none-symbianelf-size arm-none-symbianelf-strings arm-none-symbianelf-strip)
+(( SIMULTANEOUS_BUILDS > 1 )) \
+  && REQUIRED_COMMANDS+=(parallel)
+
+for cmd in "${REQUIRED_COMMANDS[@]}" ; do
+  if ! command -v "${cmd}" &>/dev/null ; then
+    >&2 echo "\"${cmd}\" is not available, but it's strictly required for this script to operate properly"
+    >&2 echo "Please install the package containing \"${cmd}\" to use this script"
+    exit 1
+  fi
+done
+
+(( $# )) \
+  && EPOCROOT="$1"
+
+EPOCROOT="${EPOCROOT:-$HOME/epocroot}"
+
+export EPOCROOT
+
+if [[ -e "${EPOCROOT}" ]] ; then
+  if (( ! _OVERWRITE )) ; then
+    >&2 echo "\"${EPOCROOT}\" already exists"
+    >&2 echo "Use '-f' to force-overwrite it"
+    exit 1
+  elif [[ ! -d "${EPOCROOT}" ]] && (( _OVERWRITE < 2 )); then
+    >&2 echo "EPOCROOT is not a directory"
+    >&2 echo "Refusing to force-overwrite"
+    exit 1
+  elif (( _OVERWRITE >= 2 )) ; then
+    >&2 echo '!!! CAUTION !!!'
+    >&2 echo "Removing an existing EPOCROOT at \"${EPOCROOT}\""
+    >&2 echo 'Press ^C (i.e. press "c" while holding the "Ctrl" key) to abort!'
+    for i in $(seq 1 5 | tac) ; do
+      >&2 echo -n "$i... "
+      sleep 1s
+    done
+    >&2 echo '0...'
+    >&2 echo 'Now removing the EPOCROOT'
+    rm -rvf "${EPOCROOT}"[[ ! -z "$1" ]] \
+  fi
+fi
+
+>&2 echo -e '==> Boostrapping the environment'
+
+readonly REAL_EPOCROOT="${EPOCROOT}"
+
+mkdir -p "${EPOCROOT}"/epoc32/sbs_config
+mkdir -p "${EPOCROOT}"/epoc32/tools
+mkdir -p "${EPOCROOT}"/epoc32/include
+
+>&2 echo -e ' ==> Checking case-sensitivity of the filesystem'
+rm -rf "${EPOCROOT}"/.check_case "${EPOCROOT}"/.CHECK_CASE
+touch "${EPOCROOT}"/.check_case
+if [[ ! -e "${EPOCROOT}"/.CHECK_CASE ]] ; then
+  >&2 echo ' ==> CASE-SENSITIVE filesystem detected!'
+
+  declare -a FS_REQUIRED_COMMANDS
+  readonly FS_REQUIRED_COMMANDS=(cicpoffs fusermount)
+
+  for cmd in "${FS_REQUIRED_COMMANDS[@]}" ; do
+    if ! command -v "${cmd}" &>/dev/null ; then
+      >&2 echo "\"${cmd}\" is not available, but it's strictly required for this script to operate on CASE-SENSITIVE filesystems"
+      >&2 echo "Please install the package containing \"${cmd}\" to use this script on CASE-SENSITIVE filesystems"
+      exit 1
+    fi
+  done
+
+  EPOCROOT="$(mktemp -d)"
+
+  >&2 echo "  ==> Will remount \"${REAL_EPOCROOT}\" to \"${EPOCROOT}\""
+
+  cicpoffs -o use_ino "${REAL_EPOCROOT}" "${EPOCROOT}"
+  trap 'fusermount -u "${EPOCROOT}" || fusermount -z -u "${EPOCROOT}" ||:' EXIT
+  export EPOCROOT
+
+  if [[ ! -e "${EPOCROOT}"/.CHECK_CASE ]] ; then
+    >&2 echo -e '!!! FATAL !!!'
+    >&2 echo -e '"cicpoffs" failed sanity checks!'
+    >&2 echo -e 'Refusing to operate on a broken filesystem'
+    exit 1
+  fi
+else
+  >&2 echo -e ' ==> The filesystem is already case-insensitive'
+fi
+rm -f "${EPOCROOT}"/.check_case
+
+cat <<EOF >"${EPOCROOT}/epoc32/sbs_config/gcc.xml"
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<build xmlns="http://symbian.com/xml/build" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symbian.com/xml/build ../../schema/build/2_0.xsd">
+    <var name="root.changes">
+        <set name='VARIANT_HRH' value='\$(EPOCINCLUDE)/feature_settings.hrh'/>
+    </var>
+</build>
+EOF
+
+_TEMP_WORKDIR="$(mktemp -d)"
+trap 'rm -rf "$_TEMP_WORKDIR" &>/dev/null ||:' EXIT
+
+export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools
+export SBS_GCCE432BIN=$(dirname -- "$(command -v arm-none-symbianelf-gcc)")
+export SBS_GCCX86BIN=$(dirname -- "$(command -v gcc)")
+export SBS_GCCX86INC=$(dirname -- "$(command -v gcc)")/../include
+export SBS_GCCX86LIB=$(dirname -- "$(command -v gcc)")/../lib
+
+_build_tool () {
+  sbs --jobs "${MAKEJOBS}" -c tools2.nohrh -b "$1"/group/bld.inf reallyclean
+  sbs --jobs "${MAKEJOBS}" -c tools2.nohrh -b "$1"/group/bld.inf
+}
+export -f _build_tool
+
+_build_target () {
+  sbs --jobs "${MAKEJOBS}" -c gcce_armv5 -b "$1"/group/bld.inf reallyclean
+  sbs --jobs "${MAKEJOBS}" -c gcce_armv5 -b "$1"/group/bld.inf
+}
+export -f _build_target
+
+_multi_build () {
+  local f
+  f="$1"
+  shift
+  if (( SIMULTANEOUS_BUILDS > 1 )) ; then
+    parallel --jobs="${SIMULTANEOUS_BUILDS}" "$f" ::: "$@"
+  else
+    for tool in "$@" ; do "$f" "${tool}" ; done
+  fi
+}
+
+pushd "${_TEMP_WORKDIR}"/
+  >&2 echo -e ' ==> Downloading headers'
+  git clone --depth 1 --single-branch -- "${SYMBIAN_HEADERS_REPO:-https://github.com/SymbianRevive/symbian-headers.git}" symbian-headers
+  pushd symbian-headers/
+    >&2 echo -e ' ==> Installing headers'
+    shopt -s nullglob
+    cp -av ./* "${EPOCROOT}"/epoc32/include/
+
+    #if (( ! _EPOCROOT_CASE_INSENSITIVE )) \
+    #  && [[ -d "${EPOCROOT}"/epoc32/include/gles ]] \
+    #  && [[ -d "${EPOCROOT}"/epoc32/include/GLES ]] ; then
+    #  >&2 echo -e '  ==> Patching GLES'
+    #  mv "${EPOCROOT}"/epoc32/include/gles/* "${EPOCROOT}"/epoc32/include/GLES/
+    #  rmdir "${EPOCROOT}"/epoc32/include/gles
+    #fi
+    shopt -u nullglob
+  popd
+
+  >&2 echo -e ' ==> Downloading build tool sources'
+  git clone --depth 1 --single-branch -- "${SYMBIAN_BUILD_REPO:-https://github.com/SymbianRevive/symbian-build.git}" symbian-build
+  pushd symbian-build/
+    >&2 echo -e ' ==> Bootstrapping SBSv2 "raptor"'
+    >&2 echo -e '  ==> Building SBSv2 "raptor"'
+    pushd cross-plat-dev-utils/
+      >&2 perl -I. build_raptor.pl
+    popd
+
+    >&2 echo -e '  ==> Installing SBSv2 "raptor"'
+    rm -rf "${EPOCROOT}"/epoc32/tools/sbs
+    cp -av sbsv2/raptor "${EPOCROOT}"/epoc32/tools/sbs
+
+    >&2 echo -e ' ==> Bootstrapping tools'
+    readonly SYMBIAN_BUILD_TOOLS2_BUILDS=(e32tools/elf2e32 bintools/rcomp misctools/mifconv sistools/makesis)
+    _multi_build _build_tool "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}"
+  popd
+
+  >&2 echo -e ' ==> Downloading import library sources'
+  git clone --depth 1 --single-branch -- "${SYMBIAN_IMPLIBS_REPO:-https://github.com/SymbianRevive/symbian-implibs.git}" symbian-implibs
+  >&2 echo -e ' ==> Building import libraries'
+  pushd symbian-implibs/
+    shopt -s nullglob globstar
+    readonly SYMBIAN_BUILD_IMPLIB_BUILDS=(**/group/bld.inf)
+    shopt -u nullglob globstar
+    _multi_build _build_target "${SYMBIAN_BUILD_IMPLIB_BUILDS[@]}"
+  popd
+popd
+
+>&2 echo -e '==> The environment is ready!'
+>&2 echo -e '\nYou can export the following environment variables now:\n'
+
+echo " export EPOCROOT=${REAL_EPOCROOT}"
+echo " export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools"
+echo " export SBS_GCCE432BIN=${SBS_GCCE432BIN}"
+echo " export SBS_GCCX86BIN=${SBS_GCCEX86BIN}"
+echo " export SBS_GCCX86INC=${SBS_GCCE432INC}"
+echo " export SBS_GCCX86LIB=${SBS_GCCE432LIB}"
