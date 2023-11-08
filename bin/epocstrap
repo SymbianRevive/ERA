@@ -156,7 +156,7 @@ if [[ ! -e "${EPOCROOT}"/.CHECK_CASE ]] ; then
 
   >&2 echo "  ==> Will remount \"${REAL_EPOCROOT}\" to \"${EPOCROOT}\""
 
-  cicpoffs -o use_ino "${REAL_EPOCROOT}" "${EPOCROOT}"
+  cicpoffs "${REAL_EPOCROOT}" "${EPOCROOT}"
   trap 'fusermount -u "${EPOCROOT}" || fusermount -z -u "${EPOCROOT}" ||:' EXIT
   export EPOCROOT
 
@@ -188,16 +188,17 @@ export SBS_GCCE432BIN=$(dirname -- "$(command -v arm-none-symbianelf-gcc)")
 export SBS_GCCX86BIN=$(dirname -- "$(command -v gcc)")
 export SBS_GCCX86INC=$(dirname -- "$(command -v gcc)")/../include
 export SBS_GCCX86LIB=$(dirname -- "$(command -v gcc)")/../lib
+export SBS_SHELL=$(command -v bash)
 
 _build_tool () {
-  sbs --jobs "${MAKEJOBS}" -c tools2.nohrh -b "$1"/group/bld.inf reallyclean
-  sbs --jobs "${MAKEJOBS}" -c tools2.nohrh -b "$1"/group/bld.inf
+  >&2 sbs --jobs "${MAKEJOBS}" -c tools2.nohrh -b "$1"/group/bld.inf reallyclean
+  >&2 sbs --jobs "${MAKEJOBS}" -c tools2.nohrh -b "$1"/group/bld.inf
 }
 export -f _build_tool
 
 _build_target () {
-  sbs --jobs "${MAKEJOBS}" -c gcce_armv5 -b "$1"/group/bld.inf reallyclean
-  sbs --jobs "${MAKEJOBS}" -c gcce_armv5 -b "$1"/group/bld.inf
+  >&2 sbh --jobs "${MAKEJOBS}" -c gcce_armv5 -b "$1"/group/bld.inf reallyclean
+  >&2 sbs --jobs "${MAKEJOBS}" -c gcce_armv5 -b "$1"/group/bld.inf
 }
 export -f _build_target
 
@@ -206,7 +207,7 @@ _multi_build () {
   f="$1"
   shift
   if (( SIMULTANEOUS_BUILDS > 1 )) ; then
-    parallel --jobs="${SIMULTANEOUS_BUILDS}" "$f" ::: "$@"
+    >&2 parallel --jobs="${SIMULTANEOUS_BUILDS}" "$f" ::: "$@"
   else
     for tool in "$@" ; do "$f" "${tool}" ; done
   fi
@@ -218,7 +219,7 @@ pushd "${_TEMP_WORKDIR}"/
   pushd symbian-headers/
     >&2 echo -e ' ==> Installing headers'
     shopt -s nullglob
-    cp -av ./* "${EPOCROOT}"/epoc32/include/
+    cp -a ./* "${EPOCROOT}"/epoc32/include/
 
     #if (( ! _EPOCROOT_CASE_INSENSITIVE )) \
     #  && [[ -d "${EPOCROOT}"/epoc32/include/gles ]] \
@@ -241,9 +242,12 @@ pushd "${_TEMP_WORKDIR}"/
 
     >&2 echo -e '  ==> Installing SBSv2 "raptor"'
     rm -rf "${EPOCROOT}"/epoc32/tools/sbs
-    cp -av sbsv2/raptor "${EPOCROOT}"/epoc32/tools/sbs
+    cp -a sbsv2/raptor "${EPOCROOT}"/epoc32/tools/sbs
 
-    >&2 echo -e ' ==> Bootstrapping tools'
+    >&2 echo -e ' ==> Bootstrapping tools2-x86'
+    >&2 echo -e '  ==> Building libcrypto'
+    ./build-openssl.sh
+    >&2 echo -e '  ==> Building tools'
     readonly SYMBIAN_BUILD_TOOLS2_BUILDS=(e32tools/elf2e32 bintools/rcomp misctools/mifconv sistools/makesis)
     _multi_build _build_tool "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}"
   popd
@@ -268,3 +272,4 @@ echo " export SBS_GCCE432BIN=${SBS_GCCE432BIN}"
 echo " export SBS_GCCX86BIN=${SBS_GCCX86BIN}"
 echo " export SBS_GCCX86INC=${SBS_GCC432INC}"
 echo " export SBS_GCCX86LIB=${SBS_GCC432LIB}"
+echo " export SBS_SHELL=${SBS_SHELL}"
