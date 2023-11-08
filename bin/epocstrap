@@ -97,7 +97,7 @@ shift $((OPTIND-1))
   && set -x
 
 declare -a REQUIRED_COMMANDS
-REQUIRED_COMMANDS=(tac git bash perl gcc g++ cpp ld arm-none-symbianelf-c++ arm-none-symbianelf-cpp arm-none-symbianelf-g++ arm-none-symbianelf-gcc arm-none-symbianelf-gcc-ar arm-none-symbianelf-gcc-nm arm-none-symbianelf-gcc-ranlib arm-none-symbianelf-gcov arm-none-symbianelf-gcov-dump arm-none-symbianelf-gcov-tool arm-none-symbianelf-lto-dump arm-none-symbianelf-addr2line arm-none-symbianelf-ar arm-none-symbianelf-as arm-none-symbianelf-c++filt arm-none-symbianelf-elfedit arm-none-symbianelf-gprof arm-none-symbianelf-ld arm-none-symbianelf-nm arm-none-symbianelf-objcopy arm-none-symbianelf-objdump arm-none-symbianelf-ranlib arm-none-symbianelf-readelf arm-none-symbianelf-size arm-none-symbianelf-strings arm-none-symbianelf-strip)
+REQUIRED_COMMANDS=(tac git bash perl gcc g++ cpp lz4 wget ld arm-none-symbianelf-c++ arm-none-symbianelf-cpp arm-none-symbianelf-g++ arm-none-symbianelf-gcc arm-none-symbianelf-gcc-ar arm-none-symbianelf-gcc-nm arm-none-symbianelf-gcc-ranlib arm-none-symbianelf-gcov arm-none-symbianelf-gcov-dump arm-none-symbianelf-gcov-tool arm-none-symbianelf-lto-dump arm-none-symbianelf-addr2line arm-none-symbianelf-ar arm-none-symbianelf-as arm-none-symbianelf-c++filt arm-none-symbianelf-elfedit arm-none-symbianelf-gprof arm-none-symbianelf-ld arm-none-symbianelf-nm arm-none-symbianelf-objcopy arm-none-symbianelf-objdump arm-none-symbianelf-ranlib arm-none-symbianelf-readelf arm-none-symbianelf-size arm-none-symbianelf-strings arm-none-symbianelf-strip)
 (( SIMULTANEOUS_BUILDS > 1 )) \
   && REQUIRED_COMMANDS+=(parallel)
 
@@ -264,15 +264,19 @@ pushd "${_TEMP_WORKDIR}"/
     _multi_build _build_tool "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}"
   popd
 
-  >&2 echo -e ' ==> Downloading import library sources'
-  git clone --depth 1 --single-branch -- "${SYMBIAN_IMPLIBS_REPO:-https://github.com/SymbianRevive/symbian-implibs.git}" symbian-implibs
-  >&2 echo -e ' ==> Building import libraries'
-  pushd symbian-implibs/
-    shopt -s nullglob globstar
-    readonly SYMBIAN_BUILD_IMPLIB_BUILDS=(**/group/bld.inf)
-    shopt -u nullglob globstar
-    _multi_build _build_target "${SYMBIAN_BUILD_IMPLIB_BUILDS[@]}"
-  popd
+  >&2 echo -e ' ==> Bootstrapping import libraries'
+  wget -O- "${SYMBIAN_IMPLIBS_URL:-https://github.com/SymbianRevive/symbian-implibs/releases/${SYMBIAN_IMPLIBS_TAG:-latest}/download/release_armv5.tar.lz4}" \
+    | tar -I lz4 -C "${EPOCROOT}" -xf-
+
+  #>&2 echo -e ' ==> Downloading import library sources'
+  #git clone --depth 1 --single-branch -- "${SYMBIAN_IMPLIBS_REPO:-https://github.com/SymbianRevive/symbian-implibs.git}" symbian-implibs
+  #>&2 echo -e ' ==> Building import libraries'
+  #pushd symbian-implibs/
+  #  shopt -s nullglob globstar
+  #  readonly SYMBIAN_BUILD_IMPLIB_BUILDS=(**/group/bld.inf)
+  #  shopt -u nullglob globstar
+  #  _multi_build _build_target "${SYMBIAN_BUILD_IMPLIB_BUILDS[@]}"
+  #popd
 popd
 
 >&2 echo -e '==> The environment is ready!'
