@@ -258,7 +258,7 @@ pushd "${_TEMP_WORKDIR}"/
 
     >&2 echo -e ' ==> Bootstrapping tools2-x86'
     >&2 echo -e '  ==> Building libcrypto'
-    ./build-openssl.sh
+    >&2 ./build-openssl.sh
     >&2 echo -e '  ==> Building tools'
     readonly SYMBIAN_BUILD_TOOLS2_BUILDS=(e32tools/elf2e32 bintools/rcomp misctools/mifconv sistools/makesis)
     _multi_build _build_tool "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}"
@@ -289,5 +289,5 @@ echo " export SBS_SHELL=${SBS_SHELL}"
 >&2 echo -e '\nYou will then be able to run SBSv2 "raptor" build system as follows:\n'
 >&2 echo ' sbs -c armv5_gcce -b /path/to/group/build.inf'
 
->&2 echo 'Thanks a lot for choosing SymbianRevive!'
+>&2 echo -e '\nThanks a lot for choosing SymbianRevive!'
 >&2 echo 'For more info about epocstrap, visit https://github.com/SymbianRevive'
