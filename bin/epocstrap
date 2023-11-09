@@ -293,6 +293,9 @@ _multi_build () {
     rm -rf "${REAL_EPOCROOT}"/epoc32/tools/sbs
     cp -a sbsv2/raptor "${REAL_EPOCROOT}"/epoc32/tools/sbs
 
+    >&2 echo -e ' ==> Installing common build utils'
+    cp -a --no-clobber sbsv1/abld/e32util/*.{pl,pm} "${REAL_EPOCROOT}"/epoc32/tools/ &>/dev/null
+
     >&2 echo -e ' ==> Bootstrapping tools2-x86'
     >&2 echo -e '  ==> Building libcrypto'
     >&2 ./build-openssl.sh
@@ -315,6 +318,9 @@ _multi_build () {
   #  _multi_build _build_target "${SYMBIAN_BUILD_IMPLIB_BUILDS[@]}"
   #&>/dev/null popd
 &>/dev/null popd
+
+>&2 echo -e '==> Fixing permissions'
+chmod +x "${REAL_EPOCROOT}"/epoc32/tools/*.pl
 
 >&2 echo -e '==> The environment is ready!'
 >&2 echo -e '\nYou can export the following environment variables now:\n'
