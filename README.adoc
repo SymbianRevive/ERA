@@ -1,6 +1,6 @@
-= EPOCstrap
+= ERA
 
-A simple tool for bootstrapping EPOCROOT instances.
+The **E**POC**R**OOT **A**ssistant
 
 == Usage
 
@@ -9,5 +9,5 @@ $ git clone --single-branch https://github.com/SymbianRevive/ERA.git era/
 $ cd era/
 $ eval $(bin/era "$HOME/epocroot.real")
 $ export EPOCROOT=$HOME/epocroot
-$ cicpoffs "$HOME/epocroot.real" "$EPOCROOT"
+$ cicpoffs -o attr_timeout=0 -o entry_timeout=0 "$HOME/epocroot.real" "$EPOCROOT"
 ----
