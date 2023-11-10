@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+import argparse
+import pathlib
+
+print("""texi2any (GNU texinfo) 7.1
+
+Copyright (C) 2023 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.""")
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-o", type=pathlib.Path)
+args, _ = parser.parse_known_args()
+
+args.o.touch()

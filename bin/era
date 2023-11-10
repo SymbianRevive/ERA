@@ -98,7 +98,7 @@ EOF
 }
 
 MAKEJOBS=${MAKEJOBS:-$(nproc)}
-_SIMULTANEOUS_EXTRACTS=${_SIMULTANEOUS_EXTRACTS:-$(( $(nproc) / 2 + 1))}
+_SIMULTANEOUS_EXTRACTS=${_SIMULTANEOUS_EXTRACTS:-$(( $(nproc) / 2 + 1 ))}
 _SIMULTANEOUS_BUILDS=${_SIMULTANEOUS_BUILDS:-1}
 
 export MAKEJOBS
@@ -157,7 +157,7 @@ export MAKEFLAGS
 
 declare -a REQUIRED_COMMANDS
 REQUIRED_COMMANDS=(tac git bash perl gcc g++ ld cpp lz4 wget arm-none-symbianelf-c++ arm-none-symbianelf-cpp arm-none-symbianelf-g++ arm-none-symbianelf-gcc arm-none-symbianelf-gcc-ar arm-none-symbianelf-gcc-nm arm-none-symbianelf-gcc-ranlib arm-none-symbianelf-gcov arm-none-symbianelf-gcov-dump arm-none-symbianelf-gcov-tool arm-none-symbianelf-lto-dump arm-none-symbianelf-addr2line arm-none-symbianelf-ar arm-none-symbianelf-as arm-none-symbianelf-c++filt arm-none-symbianelf-elfedit arm-none-symbianelf-gprof arm-none-symbianelf-ld arm-none-symbianelf-nm arm-none-symbianelf-objcopy arm-none-symbianelf-objdump arm-none-symbianelf-ranlib arm-none-symbianelf-readelf arm-none-symbianelf-size arm-none-symbianelf-strings arm-none-symbianelf-strip)
-(( _SIMULTANEOUS_BUILDS > 1 )) \
+(( _SIMULTANEOUS_BUILDS > 1 )) || (( _SIMULTANEOUS_EXTRACTS > 1 )) \
   && REQUIRED_COMMANDS+=(parallel)
 #readonly REQUIRED_COMMANDS
 
@@ -259,7 +259,7 @@ export SBS_SHELL=$(command -v bash)
 export SBS_HOME="${REAL_EPOCROOT}"/epoc32/tools/sbs
 
 _SCRIPT_DIR=$(dirname -- "$(realpath -- "$0")")
-_AUX_DIR=$(dirname -- "${_SCRIPT_DIR}")/lib/epocstrap
+_AUX_DIR=$(dirname -- "${_SCRIPT_DIR}")/lib/era
 
 _just_extract () {
   local subdir
@@ -326,11 +326,11 @@ _clone_or_pull () {
   if [[ ! -f "${_AUX_DIR}"/get-version.sh ]] ; then
     >&2 echo -e ' ==> Downloading the latest version of ERA'
     _clone_or_pull "${EPOCSTRAP_REPO:-https://github.com/SymbianRevive/ERA.git}" epocstrap
-    _AUX_DIR="${PWD}"/epocstrap/lib/epocstrap
+    _AUX_DIR="${PWD}"/epocstrap/lib/era
   fi
   export PATH="${_AUX_DIR}":"${PATH}"
 
-  # TODO: Fix the build script for legacy Symbian GCC
+  # TODO: Figure out how to build CS GCCE correctly
   ## CodeSourcery GCCE 4
   #(( _LEGACY_GCC )) \
   #  && source "$(command -v install-gcce.sh)"

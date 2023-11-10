@@ -36,14 +36,16 @@ _clone_or_pull "${SYMBIAN_BUILD_REPO:-https://github.com/SymbianRevive/symbian-b
   &>/dev/null popd
 
   >&2 echo -e ' ==> Installing common build utils'
-  cp -a --no-clobber sbsv1/abld/e32util/*.{pl,pm} "${REAL_EPOCROOT}"/epoc32/tools/ &>/dev/null
+  &>/dev/null cp -a --no-clobber sbsv1/abld/e32util/*.{pl,pm} "${REAL_EPOCROOT}"/epoc32/tools/ ||:
 
   >&2 echo -e ' ==> Bootstrapping tools2-x86'
   >&2 echo -e '  ==> Building libcrypto'
   >&2 ./build-openssl.sh
   >&2 echo -e '  ==> Building tools'
   shopt -s nullglob globstar
-  readonly SYMBIAN_BUILD_TOOLS2_BUILDS=(*tools/**/bld.inf)
+  SYMBIAN_BUILD_TOOLS2_BUILDS=(*tools/**/bld.inf)
   shopt -u nullglob globstar
-  _multi_build _maybe_build_tool "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}" >&2
+  SYMBIAN_BUILD_TOOLS2_BUILDS=("${SYMBIAN_BUILD_TOOLS2_BUILDS[@]/#/-b}")
+  >&2 sbs -k -q --jobs "${MAKEJOBS}" -c tools2 "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}" ||:
+  >&2 sbs -k -q --jobs "${MAKEJOBS}" -c tools2 "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}" ||:
 &>/dev/null popd
