@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+_IN_EPOCSTRAP=1
+export _IN_EPOCSTRAP
+
 _EPOCROOT_MOUNTED=0
 _FORCE_NEW_CLONE=0
+
+_MODERN_GCC=1
+_LEGACY_GCC=1
 
 _cleanup () {
   if (( _EPOCROOT_MOUNTED )) && mountpoint "${EPOCROOT}" &>/dev/null ; then
@@ -55,15 +61,21 @@ OPTIONS
         wipe any existing EPOCROOT
   -c
         remove and clone all previously cached repositories from scratch
+  -m
+        do not build and install CodeSourcery GCCE
+  -M
+        do not build and install Modern Symbian GCC
   -d
         debug this script
   -h
         display this message
   -j N
         number of jobs per build
-  -s N
+  -S N
         number of simultaneous builds
         (please not that this is distinct from the number of jobs per build)
+  -x N
+        number of simultaneous tar operations
 
 CAVEAT
 
@@ -86,11 +98,12 @@ EOF
 }
 
 MAKEJOBS=${MAKEJOBS:-$(nproc)}
-SIMULTANEOUS_BUILDS=${SIMULTANEOUS_BUILDS:-1}
+_SIMULTANEOUS_EXTRACTS=${_SIMULTANEOUS_EXTRACTS:-$(( $(nproc) / 2 + 1))}
+_SIMULTANEOUS_BUILDS=${_SIMULTANEOUS_BUILDS:-1}
 
 export MAKEJOBS
 
-while getopts ':fFcj:S:dh' o ; do
+while getopts ':fFcj:S:x:mMdh' o ; do
   case "$o" in
     f)
       _OVERWRITE=1
@@ -104,11 +117,20 @@ while getopts ':fFcj:S:dh' o ; do
     c)
       _FORCE_NEW_CLONE=1
       ;;
+    m)
+      _LEGACY_GCC=0
+      ;;
+    M)
+      _MODERN_GCC=0
+      ;;
     j)
       MAKEJOBS="${OPTARG}"
       ;;
     S)
-      SIMULTANEOUS_BUILDS="${OPTARG}"
+      _SIMULTANEOUS_BUILDS="${OPTARG}"
+      ;;
+    x)
+      _SIMULTANEOUS_EXTRACTS="${OPTARG}"
       ;;
     h)
       _help
@@ -134,9 +156,10 @@ MAKEFLAGS+=" -j${MAKEJOBS}"
 export MAKEFLAGS
 
 declare -a REQUIRED_COMMANDS
-REQUIRED_COMMANDS=(tac git bash perl gcc g++ cpp lz4 wget ld arm-none-symbianelf-c++ arm-none-symbianelf-cpp arm-none-symbianelf-g++ arm-none-symbianelf-gcc arm-none-symbianelf-gcc-ar arm-none-symbianelf-gcc-nm arm-none-symbianelf-gcc-ranlib arm-none-symbianelf-gcov arm-none-symbianelf-gcov-dump arm-none-symbianelf-gcov-tool arm-none-symbianelf-lto-dump arm-none-symbianelf-addr2line arm-none-symbianelf-ar arm-none-symbianelf-as arm-none-symbianelf-c++filt arm-none-symbianelf-elfedit arm-none-symbianelf-gprof arm-none-symbianelf-ld arm-none-symbianelf-nm arm-none-symbianelf-objcopy arm-none-symbianelf-objdump arm-none-symbianelf-ranlib arm-none-symbianelf-readelf arm-none-symbianelf-size arm-none-symbianelf-strings arm-none-symbianelf-strip)
-(( SIMULTANEOUS_BUILDS > 1 )) \
+REQUIRED_COMMANDS=(tac git bash perl gcc g++ ld cpp lz4 wget arm-none-symbianelf-c++ arm-none-symbianelf-cpp arm-none-symbianelf-g++ arm-none-symbianelf-gcc arm-none-symbianelf-gcc-ar arm-none-symbianelf-gcc-nm arm-none-symbianelf-gcc-ranlib arm-none-symbianelf-gcov arm-none-symbianelf-gcov-dump arm-none-symbianelf-gcov-tool arm-none-symbianelf-lto-dump arm-none-symbianelf-addr2line arm-none-symbianelf-ar arm-none-symbianelf-as arm-none-symbianelf-c++filt arm-none-symbianelf-elfedit arm-none-symbianelf-gprof arm-none-symbianelf-ld arm-none-symbianelf-nm arm-none-symbianelf-objcopy arm-none-symbianelf-objdump arm-none-symbianelf-ranlib arm-none-symbianelf-readelf arm-none-symbianelf-size arm-none-symbianelf-strings arm-none-symbianelf-strip)
+(( _SIMULTANEOUS_BUILDS > 1 )) \
   && REQUIRED_COMMANDS+=(parallel)
+#readonly REQUIRED_COMMANDS
 
 for cmd in "${REQUIRED_COMMANDS[@]}" ; do
   if ! command -v "${cmd}" &>/dev/null ; then
@@ -220,35 +243,33 @@ else
 fi
 rm -f "${EPOCROOT}"/.check_case
 
-cat <<EOF >"${REAL_EPOCROOT}/epoc32/sbs_config/gcc.xml"
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<build xmlns="http://symbian.com/xml/build" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symbian.com/xml/build ../../schema/build/2_0.xsd">
-    <var name="root.changes">
-        <set name='VARIANT_HRH' value='\$(EPOCINCLUDE)/feature_settings.hrh'/>
-    </var>
-</build>
-EOF
-
-cat <<EOF >"${REAL_EPOCROOT}/epoc32/sbs_config/gcce.xml"
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<build xmlns="http://symbian.com/xml/build" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symbian.com/xml/build ../../schema/build/2_0.xsd">
-    <var name="root.changes">
-        <set name='VARIANT_HRH' value='\$(EPOCINCLUDE)/variant/symbian_os.hrh'/>
-    </var>
-</build>
-EOF
-
 EPOCSTRAP_CACHEDIR=${EPOCSTRAP_CACHEDIR:-${HOME}/.cache/epocstrap}
 >&2 echo " ==> Ensuring the cache directory exists at \"${EPOCSTRAP_CACHEDIR}\""
 mkdir -p "${EPOCSTRAP_CACHEDIR}"
 
+>&2 echo " ==> Preparing ENV variables"
 export PATH="${PATH}":"${REAL_EPOCROOT}"/epoc32/tools/sbs/bin:"${REAL_EPOCROOT}"/epoc32/tools
-export SBS_GCCE432BIN=$(dirname -- "$(command -v arm-none-symbianelf-gcc)")
+export GCCE463_PREFIX="${REAL_EPOCROOT}"/epoc32/tools/gcce-4.6.3
+export SBS_GCCE463BIN="${GCCE463_PREFIX}"/bin
+export SBS_GCCMBIN=$(dirname -- "$(command -v arm-none-symbianelf-gcc)")
 export SBS_GCCX86BIN=$(dirname -- "$(command -v gcc)")
 export SBS_GCCX86INC=$(dirname -- "$(command -v gcc)")/../include
 export SBS_GCCX86LIB=$(dirname -- "$(command -v gcc)")/../lib
 export SBS_SHELL=$(command -v bash)
 export SBS_HOME="${REAL_EPOCROOT}"/epoc32/tools/sbs
+
+_SCRIPT_DIR=$(dirname -- "$(realpath -- "$0")")
+_AUX_DIR=$(dirname -- "${_SCRIPT_DIR}")/lib/epocstrap
+
+_just_extract () {
+  local subdir
+  subdir=${1%%-*}
+  mkdir -p "${subdir}"
+  >&2 echo "Extracting \"$1\" to \"${subdir}\""
+  &>/dev/null tar -xaf "$1" -C "${subdir}" --strip-components=1
+  echo "${subdir}"
+}
+export -f _just_extract 
 
 _build_tool () {
   >&2 sbs -k -q --jobs "${MAKEJOBS}" -c tools2 -b "$1" reallyclean
@@ -272,8 +293,19 @@ _multi_build () {
   local f
   f="$1"
   shift
-  if (( SIMULTANEOUS_BUILDS > 1 )) ; then
-    >&2 parallel --jobs="${SIMULTANEOUS_BUILDS}" "$f" ::: "$@"
+  if (( _SIMULTANEOUS_BUILDS > 1 )) ; then
+    parallel --jobs="${_SIMULTANEOUS_BUILDS}" "$f" ::: "$@"
+  else
+    for tool in "$@" ; do "$f" "${tool}" ; done
+  fi
+}
+
+_multi_extract () {
+  local f
+  f="$1"
+  shift
+  if (( _SIMULTANEOUS_BUILDS > 1 )) ; then
+    parallel --jobs="${_SIMULTANEOUS_EXTRACTS}" "$f" ::: "$@"
   else
     for tool in "$@" ; do "$f" "${tool}" ; done
   fi
@@ -291,45 +323,31 @@ _clone_or_pull () {
 }
 
 &>/dev/null pushd "${EPOCSTRAP_CACHEDIR}"/
-  >&2 echo -e ' ==> Downloading headers'
-  _clone_or_pull "${SYMBIAN_HEADERS_REPO:-https://github.com/SymbianRevive/symbian-headers.git}" symbian-headers
-  &>/dev/null pushd symbian-headers/
-    >&2 echo -e ' ==> Installing headers'
-    shopt -s nullglob
-    cp -a ./* "${REAL_EPOCROOT}"/epoc32/include/
-    shopt -u nullglob
-  &>/dev/null popd
+  if [[ ! -f "${_AUX_DIR}"/get-version.sh ]] ; then
+    >&2 echo -e ' ==> Downloading the latest version of EPOCSTRAP'
+    _clone_or_pull "${EPOCSTRAP_REPO:-https://github.com/SymbianRevive/epocstrap.git}" epocstrap
+    _AUX_DIR="${PWD}"/epocstrap/lib/epocstrap
+  fi
+  export PATH="${_AUX_DIR}":"${PATH}"
 
-  >&2 echo -e ' ==> Downloading build tool sources'
-    _clone_or_pull "${SYMBIAN_BUILD_REPO:-https://github.com/SymbianRevive/symbian-build.git}" symbian-build
-  &>/dev/null pushd symbian-build/
-    >&2 echo -e ' ==> Bootstrapping SBSv2 "raptor"'
-    >&2 echo -e '  ==> Installing SBSv2'
-    rm -rf "${SBS_HOME}"
-    cp -a sbsv2/raptor "${SBS_HOME}"
+  # TODO: Fix the build script for legacy Symbian GCC
+  ## CodeSourcery GCCE 4
+  #(( _LEGACY_GCC )) \
+  #  && source "$(command -v install-gcce.sh)"
 
-    >&2 echo -e '  ==> Building auxilary tools for SBSv2'
-    &>/dev/null pushd cross-plat-dev-utils/
-      >&2 make ${MAKEFLAGS} -C "${SBS_HOME}"/util clean
-      >&2 make ${MAKEFLAGS} -C "${SBS_HOME}"/util
-    &>/dev/null popd
+  # TODO: Add a build script for Modern Symbian GCC
+  ## Modern Symbian GCC
+  #(( _MODERN_GCC )) \
+  #  && source "$(command -v install-modern-gcc.sh)"
 
-    >&2 echo -e ' ==> Installing common build utils'
-    cp -a --no-clobber sbsv1/abld/e32util/*.{pl,pm} "${REAL_EPOCROOT}"/epoc32/tools/ &>/dev/null
+  # symbian-headers
+  source "$(command -v install-headers.sh)"
 
-    >&2 echo -e ' ==> Bootstrapping tools2-x86'
-    >&2 echo -e '  ==> Building libcrypto'
-    >&2 ./build-openssl.sh
-    >&2 echo -e '  ==> Building tools'
-    shopt -s nullglob globstar
-    readonly SYMBIAN_BUILD_TOOLS2_BUILDS=(*tools/**/bld.inf)
-    shopt -u nullglob globstar
-    _multi_build _maybe_build_tool "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}" >&2
-  &>/dev/null popd
+  # symbian-build
+  source "$(command -v install-raptor.sh)"
 
-  >&2 echo -e ' ==> Bootstrapping import libraries'
-  wget -O- "${SYMBIAN_IMPLIBS_URL:-https://github.com/SymbianRevive/symbian-implibs/releases/${SYMBIAN_IMPLIBS_TAG:-latest}/download/release_armv5.tar.lz4}" \
-    | >&2 tar -I lz4 -C "${REAL_EPOCROOT}" -xf-
+  # symbian-implibs
+  source "$(command -v install-implibs.sh)"
 &>/dev/null popd
 
 >&2 echo -e '==> Fixing permissions'
@@ -338,13 +356,25 @@ chmod +x "${REAL_EPOCROOT}"/epoc32/tools/*.pl
 >&2 echo -e '==> The environment is ready!'
 >&2 echo -e '\nYou can export the following environment variables now:\n'
 
+>&2 echo -n ' '
 echo "export EPOCROOT=${REAL_EPOCROOT}"
+>&2 echo -n ' '
 echo 'export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools'
-echo "export SBS_GCCE432BIN=${SBS_GCCE432BIN}"
+>&2 echo -n ' '
+echo "export SBS_GCCMBIN=${SBS_GCCMBIN}"
+>&2 echo -n ' '
+echo "export SBS_GCCE463BIN=${SBS_GCCE463BIN}"
+#>&2 echo -n ' '
+#echo "export SBS_GCCE432BIN=${SBS_GCCE432BIN}"
+>&2 echo -n ' '
 echo "export SBS_GCCX86BIN=${SBS_GCCX86BIN}"
+>&2 echo -n ' '
 echo "export SBS_GCCX86INC=${SBS_GCCX86INC}"
+>&2 echo -n ' '
 echo "export SBS_GCCX86LIB=${SBS_GCCX86LIB}"
+>&2 echo -n ' '
 echo "export SBS_SHELL=${SBS_SHELL}"
+>&2 echo -n ' '
 echo "export SBS_HOME=${REAL_EPOCROOT}/epoc32/tools/sbs"
 
 >&2 echo -e '\nYou will then be able to run SBSv2 "raptor" build system as follows:\n'
