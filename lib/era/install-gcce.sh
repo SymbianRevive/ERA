@@ -13,11 +13,13 @@ _gcce_build_target () {
   >&2 echo "  ==> Building ${name}"
   &>/dev/null pushd "${dir}"/
     shopt -s nullglob
-    for patch in "${_AUX_DIR}"/lib/epocstrap/patch/gcc/*.patch ; do
-      &>/dev/null POSIXLY_CORRECT=1 patch -p1 -Nr- <"${patch}" &>/dev/null
+    >&2 echo "   ==> Patching ${name}"
+    for patch in "${_AUX_DIR}"/lib/era/patch/"${dir}"/*.patch ; do
+      >/dev/null POSIXLY_CORRECT=1 patch -p1 -Nr- <"${patch}" &>/dev/null
     done
     shopt -u nullglob
 
+    >&2 echo "   ==> Configuring ${name}"
     >&2 make distclean ||:
     shopt -s globstar
     >&2 rm -f ./**/config.cache ||:
@@ -31,7 +33,9 @@ _gcce_build_target () {
       ASFLAGS="-m32 -O2" \
       LDFLAGS="-m32 -O2"
     >&2 make clean ||:
+    >&2 echo "   ==> Making ${name}"
     >&2 make -k ${MAKEFLAGS} ||:
+    >&2 echo "   ==> Installing ${name}"
     >&2 make -k install install-strip ||:
   &>/dev/null popd
 }
