@@ -43,7 +43,7 @@ _help () {
   _usage
   >&2 cat <<EOF
 
-  Bootstraps an EPOCROOT
+  Create or update an EPOCROOT
 
   - If the EPOCROOT argument is not supplied, the EPOCROOT env is used instead
   - If neither of the argument and the env are set, the new EPOCROOT is created
@@ -324,8 +324,8 @@ _clone_or_pull () {
 
 &>/dev/null pushd "${EPOCSTRAP_CACHEDIR}"/
   if [[ ! -f "${_AUX_DIR}"/get-version.sh ]] ; then
-    >&2 echo -e ' ==> Downloading the latest version of EPOCSTRAP'
-    _clone_or_pull "${EPOCSTRAP_REPO:-https://github.com/SymbianRevive/epocstrap.git}" epocstrap
+    >&2 echo -e ' ==> Downloading the latest version of ERA'
+    _clone_or_pull "${EPOCSTRAP_REPO:-https://github.com/SymbianRevive/ERA.git}" epocstrap
     _AUX_DIR="${PWD}"/epocstrap/lib/epocstrap
   fi
   export PATH="${_AUX_DIR}":"${PATH}"
