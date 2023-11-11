@@ -20,23 +20,25 @@ _cleanup () {
 }
 
 _err () {
-  >&2 echo "Error $1 occurred at line $2"
+  >&2 echo "Error $1 occurred at line $2 in script \"$3\""
   _cleanup
+  exit "$1"
 }
 
 _int () {
   >&2 echo 'Interrupted...'
   _cleanup
+  exit 130
 }
 
-trap '_err $? ${LINENO}' ERR
+trap '_err $? ${LINENO} "${BASH_SOURCE[0]}"' ERR
 trap '_int' INT
 
 _DEBUG=0
 _OVERWRITE=0
 
 _usage () {
-  >&2 echo "USAGE: $0 [-fFcdh] [-j N] [-S N] [EPOCROOT]"
+  >&2 echo "USAGE: $0 [-fFcdh] [-j N] [-S N] [-r EPOCROOT] [COMPONENTS...]"
 }
 
 _help () {
@@ -51,20 +53,18 @@ _help () {
 
 ARGUMENTS
 
-  EPOCROOT
-        target location for the new EPOCROOT
+  COMPONENTS
+        additional components to install
 
 OPTIONS
+  -r EPOCROOT
+        target location for the new EPOCROOT
   -f
         overwrite any existing EPOCROOT
   -F
         wipe any existing EPOCROOT
   -c
         remove and clone all previously cached repositories from scratch
-  -m
-        do not build and install CodeSourcery GCCE
-  -M
-        do not build and install Modern Symbian GCC
   -d
         debug this script
   -h
@@ -81,11 +81,11 @@ CAVEAT
 
   An EPOCROOT created using this tool is usually not usable as-is
 
-  For a complete solution, see \"systemd-epocd\"
+  For a complete solution, see "systemd-epocd"
 
 SUPPORT
 
-  For more info about epocstrap, visit https://github.com/SymbianRevive
+  For more info about ERA, visit https://github.com/SymbianRevive
 
 LICENSE
 
@@ -94,6 +94,11 @@ LICENSE
 AUTHORS
 
   SymbianRevive
+
+COMPONENTS
+
+  Compilers:
+        modern-gcc gcce
 EOF
 }
 
@@ -103,8 +108,11 @@ _SIMULTANEOUS_BUILDS=${_SIMULTANEOUS_BUILDS:-1}
 
 export MAKEJOBS
 
-while getopts ':fFcj:S:x:mMdh' o ; do
+while getopts ':r:fFcj:S:x:mMdh' o ; do
   case "$o" in
+    r)
+      EPOCROOT="${OPTARG}"
+      ;;
     f)
       _OVERWRITE=1
       ;;
@@ -155,22 +163,39 @@ MAKEFLAGS+=" -j${MAKEJOBS}"
 
 export MAKEFLAGS
 
-declare -a REQUIRED_COMMANDS
-REQUIRED_COMMANDS=(tac git bash perl gcc g++ ld cpp lz4 wget arm-none-symbianelf-c++ arm-none-symbianelf-cpp arm-none-symbianelf-g++ arm-none-symbianelf-gcc arm-none-symbianelf-gcc-ar arm-none-symbianelf-gcc-nm arm-none-symbianelf-gcc-ranlib arm-none-symbianelf-gcov arm-none-symbianelf-gcov-dump arm-none-symbianelf-gcov-tool arm-none-symbianelf-lto-dump arm-none-symbianelf-addr2line arm-none-symbianelf-ar arm-none-symbianelf-as arm-none-symbianelf-c++filt arm-none-symbianelf-elfedit arm-none-symbianelf-gprof arm-none-symbianelf-ld arm-none-symbianelf-nm arm-none-symbianelf-objcopy arm-none-symbianelf-objdump arm-none-symbianelf-ranlib arm-none-symbianelf-readelf arm-none-symbianelf-size arm-none-symbianelf-strings arm-none-symbianelf-strip)
-(( _SIMULTANEOUS_BUILDS > 1 )) || (( _SIMULTANEOUS_EXTRACTS > 1 )) \
-  && REQUIRED_COMMANDS+=(parallel)
-#readonly REQUIRED_COMMANDS
+_INSTALL_COMPONENTS=("$@")
 
-for cmd in "${REQUIRED_COMMANDS[@]}" ; do
-  if ! command -v "${cmd}" &>/dev/null ; then
-    >&2 echo "\"${cmd}\" is not available, but it's strictly required for this script to operate properly"
-    >&2 echo "Please install the package containing \"${cmd}\" to use this script"
-    exit 1
-  fi
-done
+_check_required_commands () {
+  for cmd in "$@" ; do
+    if ! command -v "${cmd}" &>/dev/null ; then
+      >&2 echo "\"${cmd}\" is not available, but it's strictly required for this script to operate properly"
+      >&2 echo "Please install the package containing \"${cmd}\" to use this script"
+      exit 1
+    fi
+  done
+}
 
-(( $# )) \
-  && EPOCROOT="$1"
+_check_required_commands tac git bash perl gcc g++ ld cpp lz4 wget
+if [[ "${_INSTALL_COMPONENTS[*]}" != *"modern-gcc"* ]] \
+  && [[ "${_INSTALL_COMPONENTS[*]}" != *"gcce"* ]] ; then
+  _check_required_commands \
+    arm-none-symbianelf-c++ arm-none-symbianelf-cpp arm-none-symbianelf-g++ \
+    arm-none-symbianelf-gcc arm-none-symbianelf-gcc-ar \
+    arm-none-symbianelf-gcc-nm arm-none-symbianelf-gcc-ranlib \
+    arm-none-symbianelf-gcov arm-none-symbianelf-gcov-dump \
+    arm-none-symbianelf-gcov-tool arm-none-symbianelf-lto-dump \
+    arm-none-symbianelf-addr2line arm-none-symbianelf-ar \
+    arm-none-symbianelf-as arm-none-symbianelf-c++filt \
+    arm-none-symbianelf-elfedit arm-none-symbianelf-gprof \
+    arm-none-symbianelf-ld arm-none-symbianelf-nm arm-none-symbianelf-objcopy \
+    arm-none-symbianelf-objdump arm-none-symbianelf-ranlib \
+    arm-none-symbianelf-readelf arm-none-symbianelf-size \
+    arm-none-symbianelf-strings arm-none-symbianelf-strip
+fi
+
+if (( _SIMULTANEOUS_BUILDS > 1 )) || (( _SIMULTANEOUS_EXTRACTS > 1 )) ; then
+  _check_required_commands parallel
+fi
 
 EPOCROOT="${EPOCROOT:-$HOME/epocroot}"
 
@@ -213,16 +238,7 @@ touch "${EPOCROOT}"/.check_case
 if [[ ! -e "${EPOCROOT}"/.CHECK_CASE ]] ; then
   >&2 echo ' ==> CASE-SENSITIVE filesystem detected!'
 
-  declare -a FS_REQUIRED_COMMANDS
-  readonly FS_REQUIRED_COMMANDS=(cicpoffs fusermount)
-
-  for cmd in "${FS_REQUIRED_COMMANDS[@]}" ; do
-    if ! command -v "${cmd}" &>/dev/null ; then
-      >&2 echo "\"${cmd}\" is not available, but it's strictly required for this script to operate on CASE-SENSITIVE filesystems"
-      >&2 echo "Please install the package containing \"${cmd}\" to use this script on CASE-SENSITIVE filesystems"
-      exit 1
-    fi
-  done
+  _check_required_commands cicpoffs fusermount
 
   EPOCROOT="$(mktemp -d)"
 
@@ -330,15 +346,17 @@ _clone_or_pull () {
   fi
   export PATH="${_AUX_DIR}":"${PATH}"
 
-  # TODO: Figure out how to build CS GCCE correctly
-  ## CodeSourcery GCCE 4
-  #(( _LEGACY_GCC )) \
-  #  && source "$(command -v install-gcce.sh)"
+  if [[ "${_INSTALL_COMPONENTS[*]}" == *"gcce"* ]] ; then
+    # TODO: Figure out how to build CS GCCE correctly
+    # CodeSourcery GCCE 4
+    source "$(command -v install-gcce.sh)"
+  fi
 
-  # TODO: Add a build script for Modern Symbian GCC
-  ## Modern Symbian GCC
-  #(( _MODERN_GCC )) \
-  #  && source "$(command -v install-modern-gcc.sh)"
+  if [[ "${_INSTALL_COMPONENTS[*]}" == *"modern-gcc"* ]] ; then
+    # TODO: Add a build script for Modern Symbian GCC
+    # Modern Symbian GCC
+    source "$(command -v install-modern-gcc.sh)"
+  fi
 
   # symbian-headers
   source "$(command -v install-headers.sh)"
@@ -348,6 +366,19 @@ _clone_or_pull () {
 
   # symbian-implibs
   source "$(command -v install-implibs.sh)"
+
+  for component in "${_INSTALL_COMPONENTS[@]}" ; do
+    case "${component}" in
+      gcc*|*gcc)
+        # All instances of GCC(E) need to be handled before
+        ;;
+      *)
+        >&2 echo " ==> Installing additional component \"${component}\""
+        _component_script="$(command -v "install-${component}.sh")"
+        source "${_component_script:?No known recipe for this component}"
+        ;;
+    esac
+  done
 &>/dev/null popd
 
 >&2 echo -e '==> Fixing permissions'
@@ -362,10 +393,8 @@ echo "export EPOCROOT=${REAL_EPOCROOT}"
 echo 'export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools'
 >&2 echo -n ' '
 echo "export SBS_GCCMBIN=${SBS_GCCMBIN}"
->&2 echo -n ' '
-echo "export SBS_GCCE463BIN=${SBS_GCCE463BIN}"
 #>&2 echo -n ' '
-#echo "export SBS_GCCE432BIN=${SBS_GCCE432BIN}"
+#echo "export SBS_GCCE463BIN=${SBS_GCCE463BIN}"
 >&2 echo -n ' '
 echo "export SBS_GCCX86BIN=${SBS_GCCX86BIN}"
 >&2 echo -n ' '
