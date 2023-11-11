@@ -239,6 +239,10 @@ fi
 mkdir -p "${EPOCROOT}"/epoc32/sbs_config
 mkdir -p "${EPOCROOT}"/epoc32/tools
 mkdir -p "${EPOCROOT}"/epoc32/include
+mkdir -p "${EPOCROOT}"/epoc32/release
+
+chattr +F "${EPOCROOT}"/epoc32/include
+chattr +F "${EPOCROOT}"/epoc32/release
 
 EPOCSTRAP_CACHEDIR=${EPOCSTRAP_CACHEDIR:-${HOME}/.cache/epocstrap}
 >&2 echo " ==> Ensuring the cache directory exists at \"${EPOCSTRAP_CACHEDIR}\""
