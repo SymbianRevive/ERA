@@ -227,6 +227,8 @@ if [[ -e "${_EPOCROOT_IMAGE}" ]] ; then
     >&2 echo '0...'
     >&2 echo 'Now removing the EPOCROOT image'
     rm -rf "${_EPOCROOT_IMAGE}"
+    >&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
+    >&2 mkfs.ext4 -O casefold "${_EPOCROOT_IMAGE}"
   fi
 else
   >&2 echo -e ' ==> Creating an image for the EPOCROOT'

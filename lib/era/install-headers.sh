@@ -8,6 +8,6 @@ _clone_or_pull "${SYMBIAN_HEADERS_REPO:-https://github.com/SymbianRevive/symbian
 &>/dev/null pushd symbian-headers/
   >&2 echo -e ' ==> Installing headers'
   shopt -s nullglob
-  cp -a ./* "${EPOCROOT}"/epoc32/include/
+  cp -an ./* "${EPOCROOT}"/epoc32/include/ ||:
   shopt -u nullglob
 &>/dev/null popd
