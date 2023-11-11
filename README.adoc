@@ -7,7 +7,7 @@ The **E**POC**R**OOT **A**ssistant
 ----
 $ git clone --single-branch https://github.com/SymbianRevive/ERA.git era/
 $ cd era/
-$ eval $(bin/epocstrap -r "$HOME/epocroot.real" |tee -a "$HOME/.bashrc")
+$ eval $(bin/epocstrap -r ~/epocroot.ext4)
 $ export EPOCROOT=$HOME/epocroot
-$ cicpoffs -o attr_timeout=0 -o entry_timeout=0 "$HOME/epocroot.real" "$EPOCROOT"
+$ sudo mount -o loop,X-mount.idmap=b:0:"$(id -u "${USER}")":1 ~/epocroot.ext4 "${EPOCROOT}"
 ----

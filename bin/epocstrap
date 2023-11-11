@@ -4,18 +4,24 @@ set -Eeuo pipefail
 _IN_EPOCSTRAP=1
 export _IN_EPOCSTRAP
 
-_EPOCROOT_MOUNTED=0
 _FORCE_NEW_CLONE=0
 
 _MODERN_GCC=1
 _LEGACY_GCC=1
 
+_IMAGE_SIZE="4G"
+
+_EPOCROOT_IMAGE="epocroot.ext4"
+
+EPOCROOT=''
+
 _cleanup () {
-  if (( _EPOCROOT_MOUNTED )) && mountpoint "${EPOCROOT}" &>/dev/null ; then
-    fusermount -u "${EPOCROOT}" &>/dev/null \
-      || fusermount -z -u "${EPOCROOT}" &>/dev/null \
-      || :
-    rmdir "${EPOCROOT}" &>/dev/null ||:
+  if [[ ! -z "${EPOCROOT}" ]] && mountpoint "${EPOCROOT}" &>/dev/null ; then
+    sudo umount "${EPOCROOT}" &>/dev/null \
+      || sudo umount -l "${EPOCROOT}" &>/dev/null \
+      || >&2 echo "HEADS UP: You may need to unmount the temporary EPOCROOT at \"${EPOCROOT}\" manually!"
+    rmdir "${EPOCROOT}" &>/dev/null \
+      || >&2 echo "HEADS UP: You may need to remove the leftover directory from the temporary EPOCROOT at \"${EPOCROOT}\" manually!"
   fi
 }
 
@@ -45,11 +51,7 @@ _help () {
   _usage
   >&2 cat <<EOF
 
-  Create or update an EPOCROOT
-
-  - If the EPOCROOT argument is not supplied, the EPOCROOT env is used instead
-  - If neither of the argument and the env are set, the new EPOCROOT is created
-    in "\$HOME/epocroot/"
+  Create an EPOCROOT image
 
 ARGUMENTS
 
@@ -58,7 +60,9 @@ ARGUMENTS
 
 OPTIONS
   -r EPOCROOT
-        target location for the new EPOCROOT
+        target location for the new EPOCROOT image
+  -s N
+        the initial size of the EPOCROOT image
   -f
         overwrite any existing EPOCROOT
   -F
@@ -108,10 +112,13 @@ _SIMULTANEOUS_BUILDS=${_SIMULTANEOUS_BUILDS:-1}
 
 export MAKEJOBS
 
-while getopts ':r:fFcj:S:x:mMdh' o ; do
+while getopts ':r:s:fFcj:S:x:mMdh' o ; do
   case "$o" in
     r)
-      EPOCROOT="${OPTARG}"
+      _EPOCROOT_IMAGE="${OPTARG}"
+      ;;
+    s)
+      _IMAGE_SIZE="${OPTARG}"
       ;;
     f)
       _OVERWRITE=1
@@ -175,7 +182,9 @@ _check_required_commands () {
   done
 }
 
-_check_required_commands tac git bash perl gcc g++ ld cpp lz4 wget
+_check_required_commands \
+  tac git bash perl gcc g++ ld cpp lz4 wget mkfs.ext4 sudo
+
 if [[ "${_INSTALL_COMPONENTS[*]}" != *"modern-gcc"* ]] \
   && [[ "${_INSTALL_COMPONENTS[*]}" != *"gcce"* ]] ; then
   _check_required_commands \
@@ -197,82 +206,54 @@ if (( _SIMULTANEOUS_BUILDS > 1 )) || (( _SIMULTANEOUS_EXTRACTS > 1 )) ; then
   _check_required_commands parallel
 fi
 
-EPOCROOT="${EPOCROOT:-$HOME/epocroot}"
-
+EPOCROOT="$(mktemp -d)"
 export EPOCROOT
 
-if [[ -e "${EPOCROOT}" ]] ; then
+>&2 echo -e '==> Boostrapping the environment'
+
+if [[ -e "${_EPOCROOT_IMAGE}" ]] ; then
   if (( ! _OVERWRITE )) ; then
-    >&2 echo "\"${EPOCROOT}\" already exists"
-    >&2 echo "Use '-f' to force-overwrite it"
-    exit 1
-  elif [[ ! -d "${EPOCROOT}" ]] && (( _OVERWRITE < 2 )); then
-    >&2 echo "EPOCROOT is not a directory"
-    >&2 echo "Refusing to force-overwrite"
+    >&2 echo "\"${_EPOCROOT_IMAGE}\" already exists"
+    >&2 echo "Use '-f' to mount it as-is or '-F' to force-overwrite it"
     exit 1
   elif (( _OVERWRITE >= 2 )) ; then
     >&2 echo '!!! CAUTION !!!'
-    >&2 echo "Removing an existing EPOCROOT at \"${EPOCROOT}\""
+    >&2 echo "Removing an existing EPOCROOT image at \"${_EPOCROOT_IMAGE}\""
     >&2 echo 'Press ^C (i.e. press "c" while holding the "Ctrl" key) to abort!'
     for i in $(seq 1 5 | tac) ; do
       >&2 echo -n "$i... "
       sleep 1s
     done
     >&2 echo '0...'
-    >&2 echo 'Now removing the EPOCROOT'
-    rm -rvf "${EPOCROOT}"
+    >&2 echo 'Now removing the EPOCROOT image'
+    rm -rf "${_EPOCROOT_IMAGE}"
   fi
+else
+  >&2 echo -e ' ==> Creating an image for the EPOCROOT'
+  >&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
+  >&2 mkfs.ext4 -O casefold "${_EPOCROOT_IMAGE}"
 fi
 
->&2 echo -e '==> Boostrapping the environment'
-
-readonly REAL_EPOCROOT="${EPOCROOT}"
+>&2 sudo mount -o loop,X-mount.idmap=b:0:"$(id -u "${USER}")":1 "${_EPOCROOT_IMAGE}" "${EPOCROOT}"
 
 mkdir -p "${EPOCROOT}"/epoc32/sbs_config
 mkdir -p "${EPOCROOT}"/epoc32/tools
 mkdir -p "${EPOCROOT}"/epoc32/include
-
->&2 echo -e ' ==> Checking case-sensitivity of the filesystem'
-rm -rf "${EPOCROOT}"/.check_case "${EPOCROOT}"/.CHECK_CASE
-touch "${EPOCROOT}"/.check_case
-if [[ ! -e "${EPOCROOT}"/.CHECK_CASE ]] ; then
-  >&2 echo ' ==> CASE-SENSITIVE filesystem detected!'
-
-  _check_required_commands cicpoffs fusermount
-
-  EPOCROOT="$(mktemp -d)"
-
-  >&2 echo "  ==> Will remount \"${REAL_EPOCROOT}\" to \"${EPOCROOT}\""
-
-  _EPOCROOT_MOUNTED=1
-  cicpoffs -o attr_timeout=0 -o entry_timeout=0 "${REAL_EPOCROOT}" "${EPOCROOT}"
-  export EPOCROOT
-
-  if [[ ! -e "${EPOCROOT}"/.CHECK_CASE ]] ; then
-    >&2 echo -e '!!! FATAL !!!'
-    >&2 echo -e '"cicpoffs" failed sanity checks!'
-    >&2 echo -e 'Refusing to operate on a broken filesystem'
-    exit 1
-  fi
-else
-  >&2 echo -e ' ==> The filesystem is already case-insensitive'
-fi
-rm -f "${EPOCROOT}"/.check_case
 
 EPOCSTRAP_CACHEDIR=${EPOCSTRAP_CACHEDIR:-${HOME}/.cache/epocstrap}
 >&2 echo " ==> Ensuring the cache directory exists at \"${EPOCSTRAP_CACHEDIR}\""
 mkdir -p "${EPOCSTRAP_CACHEDIR}"
 
 >&2 echo " ==> Preparing ENV variables"
-export PATH="${PATH}":"${REAL_EPOCROOT}"/epoc32/tools/sbs/bin:"${REAL_EPOCROOT}"/epoc32/tools
-export GCCE463_PREFIX="${REAL_EPOCROOT}"/epoc32/tools/gcce-4.6.3
+export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools
+export GCCE463_PREFIX="${EPOCROOT}"/epoc32/tools/gcce-4.6.3
 export SBS_GCCE463BIN="${GCCE463_PREFIX}"/bin
 export SBS_GCCMBIN=$(dirname -- "$(command -v arm-none-symbianelf-gcc)")
 export SBS_GCCX86BIN=$(dirname -- "$(command -v gcc)")
 export SBS_GCCX86INC=$(dirname -- "$(command -v gcc)")/../include
 export SBS_GCCX86LIB=$(dirname -- "$(command -v gcc)")/../lib
 export SBS_SHELL=$(command -v bash)
-export SBS_HOME="${REAL_EPOCROOT}"/epoc32/tools/sbs
+export SBS_HOME="${EPOCROOT}"/epoc32/tools/sbs
 
 _SCRIPT_DIR=$(dirname -- "$(realpath -- "$0")")
 _AUX_DIR=$(dirname -- "${_SCRIPT_DIR}")/lib/era
@@ -382,13 +363,13 @@ _clone_or_pull () {
 &>/dev/null popd
 
 >&2 echo -e '==> Fixing permissions'
-chmod +x "${REAL_EPOCROOT}"/epoc32/tools/*.pl
+chmod +x "${EPOCROOT}"/epoc32/tools/*.pl
 
 >&2 echo -e '==> The environment is ready!'
 >&2 echo -e '\nYou can export the following environment variables now:\n'
 
 >&2 echo -n ' '
-echo "export EPOCROOT=${REAL_EPOCROOT}"
+echo 'export EPOCROOT=${HOME}/epocroot'
 >&2 echo -n ' '
 echo 'export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools'
 >&2 echo -n ' '
@@ -404,7 +385,7 @@ echo "export SBS_GCCX86LIB=${SBS_GCCX86LIB}"
 >&2 echo -n ' '
 echo "export SBS_SHELL=${SBS_SHELL}"
 >&2 echo -n ' '
-echo "export SBS_HOME=${REAL_EPOCROOT}/epoc32/tools/sbs"
+echo 'export SBS_HOME=${EPOCROOT}/epoc32/tools/sbs'
 
 >&2 echo -e '\nYou will then be able to run SBSv2 "raptor" build system as follows:\n'
 >&2 echo ' sbs -c armv5_gcce -b /path/to/group/build.inf'

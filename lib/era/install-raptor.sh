@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 (( _IN_EPOCSTRAP ))
 
-cat <<EOF >"${REAL_EPOCROOT}/epoc32/sbs_config/gcc.xml"
+cat <<EOF >"${EPOCROOT}/epoc32/sbs_config/gcc.xml"
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <build xmlns="http://symbian.com/xml/build" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symbian.com/xml/build ../../schema/build/2_0.xsd">
     <var name="root.changes">
@@ -12,7 +12,7 @@ cat <<EOF >"${REAL_EPOCROOT}/epoc32/sbs_config/gcc.xml"
 </build>
 EOF
 
-cat <<EOF >"${REAL_EPOCROOT}/epoc32/sbs_config/gcce.xml"
+cat <<EOF >"${EPOCROOT}/epoc32/sbs_config/gcce.xml"
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <build xmlns="http://symbian.com/xml/build" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symbian.com/xml/build ../../schema/build/2_0.xsd">
     <var name="root.changes">
@@ -36,7 +36,7 @@ _clone_or_pull "${SYMBIAN_BUILD_REPO:-https://github.com/SymbianRevive/symbian-b
   &>/dev/null popd
 
   >&2 echo -e ' ==> Installing common build utils'
-  &>/dev/null cp -a --no-clobber sbsv1/abld/e32util/*.{pl,pm} "${REAL_EPOCROOT}"/epoc32/tools/ ||:
+  &>/dev/null cp -a --no-clobber sbsv1/abld/e32util/*.{pl,pm} "${EPOCROOT}"/epoc32/tools/ ||:
 
   >&2 echo -e ' ==> Bootstrapping tools2-x86'
   >&2 echo -e '  ==> Building libcrypto'
