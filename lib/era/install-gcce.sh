@@ -31,8 +31,8 @@ _gcce_build_target () {
       >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" ../configure \
         --prefix="$(realpath -- "${prefix}")" \
         "$@" \
-        CXXFLAGS="-fpermissive -w -O2" \
-        CFLAGS="-fpermissive -w -O2" \
+        CFLAGS="-O2" \
+        CXXFLAGS="-O2" \
         ASFLAGS="-O2" \
         LDFLAGS="-O2"
       >&2 make clean
