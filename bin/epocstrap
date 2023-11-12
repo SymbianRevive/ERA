@@ -95,6 +95,9 @@ AUTHORS
 
 COMPONENTS
 
+  Extra tools:
+	fixed-elf2e32
+
   Compilers:
         gcce modern-gcc
 EOF
