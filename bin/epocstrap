@@ -81,12 +81,6 @@ OPTIONS
   -x N
         number of simultaneous tar operations
 
-CAVEAT
-
-  An EPOCROOT created using this tool is usually not usable as-is
-
-  For a complete solution, see "systemd-epocd"
-
 SUPPORT
 
   For more info about ERA, visit https://github.com/SymbianRevive
@@ -102,7 +96,7 @@ AUTHORS
 COMPONENTS
 
   Compilers:
-        modern-gcc gcce
+        gcce modern-gcc
 EOF
 }
 
@@ -394,7 +388,7 @@ echo "export SBS_SHELL=${SBS_SHELL}"
 echo 'export SBS_HOME=${EPOCROOT}/epoc32/tools/sbs'
 
 >&2 echo -e '\nYou will then be able to run SBSv2 "raptor" build system as follows:\n'
->&2 echo ' sbs -c armv5_gcce -b /path/to/group/build.inf'
+>&2 echo ' sbs -b /path/to/group/build.inf'
 
 >&2 echo -e '\nThanks a lot for choosing SymbianRevive!'
 >&2 echo 'For more info about epocstrap and SymbianRevive, visit https://github.com/SymbianRevive'

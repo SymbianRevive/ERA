@@ -2,6 +2,9 @@
 
 The **E**POC**R**OOT **A**ssistant
 
+Currently, EPOCstrap can create a mountable filesystem image containing
+an EPOCROOT that is fully usable from Linux.
+
 == Usage
 
 ----
