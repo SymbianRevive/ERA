@@ -1,0 +1,12 @@
+--- gcc-4.6-2012.03/gcc/ira-int.h       2012-03-29 10:03:19.000000000 +0200
++++ gcc-4.6-2012.03.new/gcc/ira-int.h   2023-11-15 15:49:12.838405680 +0100
+@@ -1130,2 +1130,7 @@
+-  *o = ALLOCNO_OBJECT (a, i->n);
+-  return i->n++ < ALLOCNO_NUM_OBJECTS (a);
++  int n = i->n++;
++  if (n < ALLOCNO_NUM_OBJECTS (a))
++    {
++      *o = ALLOCNO_OBJECT (a, n);
++      return true;
++    }
++  return false;

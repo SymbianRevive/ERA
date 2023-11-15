@@ -341,7 +341,6 @@ _clone_or_pull () {
   export PATH="${_AUX_DIR}":"${PATH}"
 
   if [[ "${_INSTALL_COMPONENTS[*]}" == *"gcce"* ]] ; then
-    # TODO: Figure out how to build CS GCCE correctly
     # CodeSourcery GCCE 4
     source "$(command -v install-gcce.sh)"
   fi
@@ -387,8 +386,8 @@ echo 'export EPOCROOT=${HOME}/epocroot'
 echo 'export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools'
 >&2 echo -n ' '
 echo "export SBS_GCCE1210BIN=${SBS_GCCE1210BIN}"
-#>&2 echo -n ' '
-#echo "export SBS_GCCE463BIN=${SBS_GCCE463BIN}"
+>&2 echo -n ' '
+echo "export SBS_GCCE463BIN=${SBS_GCCE463BIN}"
 >&2 echo -n ' '
 echo "export SBS_GCCX86BIN=${SBS_GCCX86BIN}"
 >&2 echo -n ' '
