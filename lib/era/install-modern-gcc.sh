@@ -7,7 +7,7 @@ _gcce_build_target () {
   local dir name prefix
   dir=${1:?missing dir}
   name=${2:-$dir}
-  prefix=${3:-$GCCM_PREFIX}
+  prefix=${3:-$GCCE1210_PREFIX}
   shift 3
 
   >&2 echo "  ==> Building ${name}"
@@ -45,7 +45,7 @@ _gcce_build_target () {
   &>/dev/null popd
 }
 
-rm -rf "${GCCM_PREFIX}"
+rm -rf "${GCCE1210_PREFIX}"
 
 >&2 echo ' ==> Downloading GNU GCC'
 &>/dev/null rm -rf gccm/

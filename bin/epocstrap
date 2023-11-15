@@ -96,10 +96,13 @@ AUTHORS
 COMPONENTS
 
   Extra tools:
-	fixed-elf2e32
+        elf2e32 platformtools uitools
 
   Compilers:
         gcce modern-gcc
+
+  Qt:
+        qt-4.8.1
 EOF
 }
 
@@ -250,8 +253,9 @@ mkdir -p "${EPOCSTRAP_CACHEDIR}"
 >&2 echo " ==> Preparing ENV variables"
 export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools
 export GCCE463_PREFIX="${EPOCROOT}"/epoc32/tools/gcce-4.6.3
+export GCCE1210_PREFIX="${EPOCROOT}"/epoc32/tools/gcce-12.1.0
 export SBS_GCCE463BIN="${GCCE463_PREFIX}"/bin
-export SBS_GCCMBIN=$(dirname -- "$(command -v arm-none-symbianelf-gcc)")
+export SBS_GCCE1210BIN=$(dirname -- "$(command -v arm-none-symbianelf-gcc)")
 export SBS_GCCX86BIN=$(dirname -- "$(command -v gcc)")
 export SBS_GCCX86INC=$(dirname -- "$(command -v gcc)")/../include
 export SBS_GCCX86LIB=$(dirname -- "$(command -v gcc)")/../lib
@@ -376,7 +380,7 @@ echo 'export EPOCROOT=${HOME}/epocroot'
 >&2 echo -n ' '
 echo 'export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools'
 >&2 echo -n ' '
-echo "export SBS_GCCMBIN=${SBS_GCCMBIN}"
+echo "export SBS_GCCE1210BIN=${SBS_GCCE1210BIN}"
 #>&2 echo -n ' '
 #echo "export SBS_GCCE463BIN=${SBS_GCCE463BIN}"
 >&2 echo -n ' '
