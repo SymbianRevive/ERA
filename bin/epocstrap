@@ -16,13 +16,15 @@ _EPOCROOT_IMAGE="epocroot.ext4"
 EPOCROOT=''
 
 _cleanup () {
+  &>/dev/null cd / ||:
   if [[ ! -z "${EPOCROOT}" ]] && mountpoint "${EPOCROOT}" &>/dev/null ; then
     sudo umount "${EPOCROOT}" &>/dev/null \
-      || sudo umount -l "${EPOCROOT}" &>/dev/null \
       || >&2 echo "HEADS UP: You may need to unmount the temporary EPOCROOT at \"${EPOCROOT}\" manually!"
     rmdir "${EPOCROOT}" &>/dev/null \
       || >&2 echo "HEADS UP: You may need to remove the leftover directory from the temporary EPOCROOT at \"${EPOCROOT}\" manually!"
   fi
+  &>/dev/null mv -f "${_EPOCROOT_SOURCE_IMAGE}" "${_EPOCROOT_TARGET_IMAGE}" \
+    || >&2 echo "Could not move \"${_EPOCROOT_SOURCE_IMAGE}\" to \"${_EPOCROOT_TARGET_IMAGE}\""
 }
 
 _err () {
@@ -206,19 +208,21 @@ if (( _SIMULTANEOUS_BUILDS > 1 )) || (( _SIMULTANEOUS_EXTRACTS > 1 )) ; then
   _check_required_commands parallel
 fi
 
+readonly _EPOCROOT_TARGET_IMAGE=${_EPOCROOT_IMAGE}
+
 EPOCROOT="$(mktemp -d)"
 export EPOCROOT
 
 >&2 echo -e '==> Boostrapping the environment'
 
-if [[ -e "${_EPOCROOT_IMAGE}" ]] ; then
+if [[ -e "${_EPOCROOT_TARGET_IMAGE}" ]] ; then
   if (( ! _OVERWRITE )) ; then
-    >&2 echo "\"${_EPOCROOT_IMAGE}\" already exists"
+    >&2 echo "\"${_EPOCROOT_TARGET_IMAGE}\" already exists"
     >&2 echo "Use '-f' to mount it as-is or '-F' to force-overwrite it"
     exit 1
   elif (( _OVERWRITE >= 2 )) ; then
     >&2 echo '!!! CAUTION !!!'
-    >&2 echo "Removing an existing EPOCROOT image at \"${_EPOCROOT_IMAGE}\""
+    >&2 echo "Removing an existing EPOCROOT image at \"${_EPOCROOT_TARGET_IMAGE}\""
     >&2 echo 'Press ^C (i.e. press "c" while holding the "Ctrl" key) to abort!'
     for i in $(seq 1 5 | tac) ; do
       >&2 echo -n "$i... "
@@ -226,17 +230,19 @@ if [[ -e "${_EPOCROOT_IMAGE}" ]] ; then
     done
     >&2 echo '0...'
     >&2 echo 'Now removing the EPOCROOT image'
-    rm -rf "${_EPOCROOT_IMAGE}"
-    >&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
-    >&2 mkfs.ext4 -O casefold "${_EPOCROOT_IMAGE}"
+    rm -rf "${_EPOCROOT_TARGET_IMAGE}"
   fi
 else
   >&2 echo -e ' ==> Creating an image for the EPOCROOT'
-  >&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
-  >&2 mkfs.ext4 -O casefold "${_EPOCROOT_IMAGE}"
 fi
 
->&2 sudo mount -o loop,X-mount.idmap=b:0:"$(id -u "${USER}")":1 "${_EPOCROOT_IMAGE}" "${EPOCROOT}"
+readonly _EPOCROOT_SOURCE_IMAGE=$(mktemp)
+_EPOCROOT_IMAGE=${_EPOCROOT_SOURCE_IMAGE}
+
+>&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
+>&2 mkfs.ext4 -O casefold "${_EPOCROOT_IMAGE}"
+
+>&2 sudo mount -o loop,relatime,X-mount.idmap=b:0:"$(id -u "${USER}")":1 "${_EPOCROOT_IMAGE}" "${EPOCROOT}"
 
 mkdir -p "${EPOCROOT}"/epoc32/sbs_config
 mkdir -p "${EPOCROOT}"/epoc32/tools

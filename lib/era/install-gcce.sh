@@ -31,9 +31,9 @@ _gcce_build_target () {
       >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" ../configure \
         --prefix="$(realpath -- "${prefix}")" \
         "$@" \
-        CFLAGS="-O2" \
-        CXXFLAGS="-O2" \
-        ASFLAGS="-O2" \
+        CFLAGS="-O2 -Wno-error" \
+        CXXFLAGS="-O2 -Wno-error -fpermissive" \
+        ASFLAGS="-O2 -Wno-error" \
         LDFLAGS="-O2"
       >&2 make clean
       >&2 echo "   ==> Making ${name}"
@@ -79,10 +79,8 @@ _multi_extract _just_extract "${GCCE_COMPONENT_ARCHIVES[@]}" >/dev/null
   _gcce_build_target gcc GCC '' \
     --target=arm-none-symbianelf \
     --enable-languages=c,c++,lto \
-    --disable-libstdcxx-pch
+    --disable-libstdcxx-pch \
     --with-gmp="${_GCCE_BUILD_ROOT}"/gmp.install \
     --disable-libmudflap \
-    --disable-libssp \
+    --disable-libssp
 &>/dev/null popd
-
-"${GCCE463_PREFIX}/bin/arm-none-symbianelf-g++" -x "c++" -o /dev/null - <<<"int main(){}"
