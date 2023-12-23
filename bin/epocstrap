@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+export LOCALE=C
+export LC_ALL=C
+
 _IN_EPOCSTRAP=1
 export _IN_EPOCSTRAP
 
