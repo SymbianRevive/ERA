@@ -20,6 +20,12 @@ _gcce_build_target () {
     done
     shopt -u nullglob
 
+    if [[ "${dir}" == "gcc" ]] ; then
+      (echo '#define __INTPTR_TYPE__ long' ; cat libgcc/libgcov-driver.c) \
+        | sponge libgcc/libgcov-driver.c
+      sed -i -e 's/#include <stdint\.h>/typedef long uintptr_t;/' libstdc++-v3/libsupc++/new_opa.cc
+    fi
+
     rm -rf _builddir/
     mkdir -p _builddir/
     &>/dev/null pushd _builddir/
@@ -31,9 +37,9 @@ _gcce_build_target () {
       >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" ../configure \
         --prefix="$(realpath -- "${prefix}")" \
         "$@" \
-        CXXFLAGS="-O2 -D__INTPTR_TYPE__=long" \
-        CFLAGS="-O2 -D__INTPTR_TYPE__=long" \
-        ASFLAGS="-O2 -D__INTPTR_TYPE__=long" \
+        CXXFLAGS="-O2" \
+        CFLAGS="-O2" \
+        ASFLAGS="-O2" \
         LDFLAGS="-O2"
       >&2 make clean
       >&2 echo "   ==> Making ${name}"
@@ -48,7 +54,6 @@ _gcce_build_target () {
 rm -rf "${GCCE1210_PREFIX}"
 
 >&2 echo ' ==> Downloading GNU GCC'
-&>/dev/null rm -rf gccm/
 &>/dev/null mkdir -p gccm/
 &>/dev/null pushd gccm/
   &>/dev/null mkdir -p binutils/
@@ -66,7 +71,7 @@ rm -rf "${GCCE1210_PREFIX}"
   &>/dev/null mkdir -p gcc/
   &>/dev/null pushd gcc/
     [[ ! -f "../gcc.txz" ]] \
-      && wget -nc -O ../gcc.txz "${GCCM_GCC_URL:-https://gcc.gnu.org/pub/gcc/releases/gcc-12.1.0/gcc-12.1.0.tar.xz}"
+      && wget -nc -O ../gcc.txz "${GCCM_GCC_URL:-https://ftp.gnu.org/gnu/gcc/gcc-12.1.0/gcc-12.1.0.tar.xz}"
     tar -xJf ../gcc.txz --strip-components=1
     ln -sf ../isl .
   &>/dev/null popd
