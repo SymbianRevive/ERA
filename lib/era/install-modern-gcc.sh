@@ -31,9 +31,9 @@ _gcce_build_target () {
       >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" ../configure \
         --prefix="$(realpath -- "${prefix}")" \
         "$@" \
-        CXXFLAGS="-O2" \
-        CFLAGS="-O2" \
-        ASFLAGS="-O2" \
+        CXXFLAGS="-O2 -D__INTPTR_TYPE__=long" \
+        CFLAGS="-O2 -D__INTPTR_TYPE__=long" \
+        ASFLAGS="-O2 -D__INTPTR_TYPE__=long" \
         LDFLAGS="-O2"
       >&2 make clean
       >&2 echo "   ==> Making ${name}"
