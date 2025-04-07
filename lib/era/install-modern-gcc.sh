@@ -109,6 +109,7 @@ rm -rf "${GCCE1210_PREFIX}"
     --enable-c99 \
     --with-newlib \
     --with-dwarf2 \
+    --disable-libunwind-exceptions \
     --with-static-standard-libraries \
     --disable-hosted-libstdcxx \
     --disable-libstdcxx-pch \
