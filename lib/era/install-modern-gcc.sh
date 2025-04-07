@@ -54,19 +54,19 @@ rm -rf "${GCCE1210_PREFIX}"
   &>/dev/null mkdir -p binutils/
   &>/dev/null pushd binutils/
     [[ ! -f "../binutils.tbz2" ]] \
-      && wget -O ../binutils.tbz2 "${GCCM_BINUTILS_URL:-https://ftp.gnu.org/gnu/binutils/binutils-2.35.tar.bz2}"
+      && wget -nc -O ../binutils.tbz2 "${GCCM_BINUTILS_URL:-https://ftp.gnu.org/gnu/binutils/binutils-2.35.tar.bz2}"
     tar -xjf ../binutils.tbz2 --strip-components=1
   &>/dev/null popd
   &>/dev/null mkdir -p isl/
   &>/dev/null pushd isl/
     [[ ! -f "../isl.tbz2" ]] \
-      && wget -O ../isl.tbz2 "${GCCM_ISL_URL:-https://libisl.sourceforge.io/isl-0.15.tar.bz2}"
+      && wget -nc -O ../isl.tbz2 "${GCCM_ISL_URL:-https://libisl.sourceforge.io/isl-0.15.tar.bz2}"
     tar -xjf ../isl.tbz2 --strip-components=1
   &>/dev/null popd
   &>/dev/null mkdir -p gcc/
   &>/dev/null pushd gcc/
-    [[ ! -f "../gcc.tbz2" ]] \
-      && wget -O ../gcc.txz "${GCCM_GCC_URL:-https://gcc.gnu.org/pub/gcc/releases/gcc-12.1.0/gcc-12.1.0.tar.xz}"
+    [[ ! -f "../gcc.txz" ]] \
+      && wget -nc -O ../gcc.txz "${GCCM_GCC_URL:-https://gcc.gnu.org/pub/gcc/releases/gcc-12.1.0/gcc-12.1.0.tar.xz}"
     tar -xJf ../gcc.txz --strip-components=1
     ln -sf ../isl .
   &>/dev/null popd
