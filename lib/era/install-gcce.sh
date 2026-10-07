@@ -51,7 +51,7 @@ rm -rf "${GCCE463_PREFIX}"
 &>/dev/null mkdir -p gcce/
 &>/dev/null pushd gcce/
 [[ ! -f "../gcce.tbz2" ]] \
-  && wget -O ../gcce.tbz2 "${GCCE_URL:-https://sourcery.sw.siemens.com/public/gnu_toolchain/arm-none-symbianelf/arm-2012.03-42-arm-none-symbianelf.src.tar.bz2}"
+  && wget -O ../gcce.tbz2 "${GCCE_URL:-https://files.aidenisik.scot/mirroring/symbian/eka2/codesourcery-gcc/arm-2012.03-42-arm-none-symbianelf.src.tar.bz2}"
 tar -xjf ../gcce.tbz2 --strip-components=1
 shopt -s nullglob
 readonly GCCE_COMPONENT_ARCHIVES=(./*.tar.bz2)
