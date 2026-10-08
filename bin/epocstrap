@@ -184,7 +184,7 @@ _check_required_commands () {
 }
 
 _check_required_commands \
-  tac git bash perl gcc g++ ld cpp lz4 wget aria2c mkfs.ext4 sudo
+  tac git awk bash perl gcc g++ ld cpp lz4 wget aria2c mkfs.ext4 sudo
 
 if [[ "$(LANG=C gcc --version 2>&1 |head -1 |cut -d\  -f3 |cut -d. -f1)" -gt 13 ]] ; then
   >&2 echo "We apologize, but this version of GCC is currently not supported."
@@ -247,6 +247,19 @@ _EPOCROOT_IMAGE=${_EPOCROOT_SOURCE_IMAGE}
 
 >&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
 >&2 mkfs.ext4 -O casefold "${_EPOCROOT_IMAGE}"
+
+_WORK_ROOT=$(POSIXLY_CORRECT=1 df -- "$(dirname -- "${_EPOCROOT_IMAGE}")" |tail -1 |awk '{print$6}')
+
+_IMAGE_SIZE=$(wc -c <"${_EPOCROOT_IMAGE}")
+_AVAIL_SIZE=$(POSIXLY_CORRECT=1 df -- "${_WORK_ROOT}" |tail -1 |awk '{print$4}')
+
+_NEEDS_SIZE=$(( _IMAGE_SIZE + 10 * 1024 * 1024 * 1024 ))
+
+if (( 512 * _AVAIL_SIZE < _NEEDS_SIZE )) ; then
+  >&2 printf 'Not enough working space on "%s"\n' "${_WORK_ROOT}"
+  >&2 printf 'At least %.1f GiB is needed for this build\n' "$(( _NEEDS_SIZE / 1024 / 1024 / 1024 ))"
+  exit 1
+fi
 
 >&2 sudo mount -o loop,relatime,X-mount.idmap=b:0:"$(id -u "${USER}")":1 "${_EPOCROOT_IMAGE}" "${EPOCROOT}"
 

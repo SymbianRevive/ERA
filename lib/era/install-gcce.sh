@@ -29,7 +29,7 @@ _gcce_build_target () {
       >&2 rm -f ./**/config.cache ||:
       shopt -u globstar nullglob
       >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" ../configure \
-        --prefix="$(realpath -- "${prefix}")" \
+        --prefix="$(readlink -f -- "${prefix}")" \
         "$@" \
         CFLAGS="-O2 -Wno-error" \
         CXXFLAGS="-O2 -Wno-error -fpermissive" \

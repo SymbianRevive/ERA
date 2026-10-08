@@ -7,12 +7,12 @@ an EPOCROOT that is fully usable from Linux.
 
 == Requirements
 
-- GCC ≤13
-- Internet connection
-- Modern Bash
-- Linux kernel with support for idmaps
+- GCC 13.3 or earlier (must be present in PATH)
+- Working Internet connection
+- Recent version of the Bash shell
+- Linux kernel with support for idmaps (all standard kernels since at least major version 6.x include it)
 
-The rest of the requirements will be displayed on the screen
+Any requirements deemed required at runtime will be displayed on the screen
 
 == Installation
 
@@ -20,7 +20,7 @@ The rest of the requirements will be displayed on the screen
 $ git clone --single-branch https://github.com/SymbianRevive/ERA.git era/
 $ cd era/
 $ bin/epocstrap -h
-$ bin/epocstrap -r ~/epocroot.ext4 modern-gcc gcce
+$ bin/epocstrap -r ~/epocroot.ext4 modern-gcc
 ----
 
 Then, follow the instructions display on screen.
