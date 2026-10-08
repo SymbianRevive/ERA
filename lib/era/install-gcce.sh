@@ -37,9 +37,9 @@ _gcce_build_target () {
         LDFLAGS="-O2"
       >&2 make clean
       >&2 echo "   ==> Making ${name}"
-      >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" make ${MAKEFLAGS}
+      >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" make "V=${_DEBUG}" ${MAKEFLAGS}
       >&2 echo "   ==> Installing ${name}"
-      >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" make install-strip
+      >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" make "V=${_DEBUG}" install-strip
     &>/dev/null popd
   &>/dev/null popd
 }

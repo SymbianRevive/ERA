@@ -44,9 +44,9 @@ _gcce_build_target () {
       >&2 make clean
       >&2 echo "   ==> Making ${name}"
       # NOTABUG: Modern GCC throws errors on builds
-      >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" make -k ${MAKEFLAGS} ||:
+      >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" make -k "V=${_DEBUG}" ${MAKEFLAGS} ||:
       >&2 echo "   ==> Installing ${name}"
-      >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" make -k install-strip ||:
+      >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" make -k "V=${_DEBUG}" install-strip ||:
     &>/dev/null popd
   &>/dev/null popd
 }
