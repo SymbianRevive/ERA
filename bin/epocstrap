@@ -33,6 +33,7 @@ _cleanup () {
 _err () {
   >&2 echo "Error $1 occurred at line $2 in script \"$3\""
   _cleanup
+  exit "$1"
 }
 
 _int () {
