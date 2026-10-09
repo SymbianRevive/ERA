@@ -185,7 +185,7 @@ _check_required_commands () {
 }
 
 _check_required_commands \
-  tac git awk bash perl gcc g++ ld cpp lz4 wget aria2c mkfs.ext4 sudo
+  tac git awk bash perl gcc g++ ld cpp patchelf lz4 python wget aria2c mkfs.ext4 sudo
 
 if [[ "$(LANG=C gcc --version 2>&1 |head -1 |cut -d\  -f3 |cut -d. -f1)" -gt 13 ]] ; then
   >&2 echo "We apologize, but this version of GCC is currently not supported."
