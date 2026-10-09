@@ -254,7 +254,7 @@ _WORK_ROOT=$(POSIXLY_CORRECT=1 df -- "$(dirname -- "${_EPOCROOT_IMAGE}")" |tail 
 _IMAGE_SIZE=$(wc -c <"${_EPOCROOT_IMAGE}")
 _AVAIL_SIZE=$(POSIXLY_CORRECT=1 df -- "${_WORK_ROOT}" |tail -1 |awk '{print$4}')
 
-_NEEDS_SIZE=$(( _IMAGE_SIZE + 10 * 1024 * 1024 * 1024 ))
+_NEEDS_SIZE=$(( _IMAGE_SIZE + 6 * 1024 * 1024 * 1024 ))
 
 if (( 512 * _AVAIL_SIZE < _NEEDS_SIZE )) ; then
   >&2 printf 'Not enough working space on "%s"\n' "${_WORK_ROOT}"
