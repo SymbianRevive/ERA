@@ -32,13 +32,13 @@ _cleanup () {
 
 _err () {
   >&2 echo "Error $1 occurred at line $2 in script \"$3\""
-  _cleanup
+  _cleanup || :
   exit "$1"
 }
 
 _int () {
   >&2 echo 'Interrupted...'
-  _cleanup
+  _cleanup || :
   exit 130
 }
 
@@ -281,7 +281,7 @@ export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/to
 export GCCE463_PREFIX="${EPOCROOT}"/epoc32/tools/gcce-4.6.3
 export GCCE1210_PREFIX="${EPOCROOT}"/epoc32/tools/gcce-12.1.0
 export SBS_GCCE463BIN="${GCCE463_PREFIX}"/bin
-export SBS_GCCE1210BIN=$(dirname -- "$(command -v arm-none-symbianelf-gcc)")
+export SBS_GCCE1210BIN="${GCCE1210_PREFIX}"/bin
 export SBS_GCCX86BIN=$(dirname -- "$(command -v gcc)")
 export SBS_GCCX86INC=$(dirname -- "$(command -v gcc)")/../include
 export SBS_GCCX86LIB=$(dirname -- "$(command -v gcc)")/../lib
