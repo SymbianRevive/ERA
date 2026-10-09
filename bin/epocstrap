@@ -215,7 +215,7 @@ if (( _SIMULTANEOUS_BUILDS > 1 )) || (( _SIMULTANEOUS_EXTRACTS > 1 )) ; then
   _check_required_commands parallel
 fi
 
-declare -r _EPOCROOT_TARGET_IMAGE=$(realpath -- "${_EPOCROOT_IMAGE}")
+declare -r _EPOCROOT_TARGET_IMAGE=$(readlink -f -- "${_EPOCROOT_IMAGE}")
 
 EPOCROOT="$(mktemp -d)"
 export EPOCROOT
@@ -288,7 +288,7 @@ export SBS_GCCX86LIB=$(dirname -- "$(command -v gcc)")/../lib
 export SBS_SHELL=$(command -v bash)
 export SBS_HOME="${EPOCROOT}"/epoc32/tools/sbs
 
-_SCRIPT_DIR=$(dirname -- "$(realpath -- "$0")")
+_SCRIPT_DIR=$(dirname -- "$(readlink -f -- "$0")")
 _AUX_DIR=$(dirname -- "${_SCRIPT_DIR}")/lib/era
 
 _just_extract () {

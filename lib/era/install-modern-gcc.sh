@@ -35,7 +35,7 @@ _gcce_build_target () {
       >&2 rm -f ./**/config.cache ||:
       shopt -u globstar nullglob
       >&2 PATH="${_AUX_DIR}"/stubs:"${PATH}" ../configure \
-        --prefix="$(realpath -- "${prefix}")" \
+        --prefix="$(readlink -m -- "${prefix}")" \
         "$@" \
         CXXFLAGS="-O2" \
         CFLAGS="-O2" \
