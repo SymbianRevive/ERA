@@ -19,7 +19,7 @@ Other distributions are likely to work, provided that build requirements are met
 - GCC 13.3 or earlier (must be present in PATH; GCC 13.4 and later versions are known to not work yet)
 - Working Internet connection
 - Recent version of the Bash shell
-- Linux kernel with support for idmaps (all standard kernels since _at least_:the major version 6.x include it)
+- Linux kernel with support for idmaps (all standard kernels since _at least_ the major version 6.x include it)
 
 CAUTION: ERA does **not** currently check system _library_ requirements;
 those are primarily just zlib, libc and libstdcxx, each installed for both architectures.
