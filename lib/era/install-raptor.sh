@@ -47,6 +47,6 @@ _clone_or_pull "${SYMBIAN_BUILD_REPO:-https://github.com/SymbianRevive/symbian-b
   SYMBIAN_BUILD_TOOLS2_BUILDS=(*tools/**/bld.inf sbsv1/**/group/bld.inf)
   shopt -u nullglob globstar
   SYMBIAN_BUILD_TOOLS2_BUILDS=("${SYMBIAN_BUILD_TOOLS2_BUILDS[@]/#/-b}")
-  >&2 sbs -k -q --jobs "${MAKEJOBS}" -c tools2 "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}" ||:
-  >&2 sbs -k -q --jobs "${MAKEJOBS}" -c tools2 "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}" ||:
+  >&2 sbs -k --jobs "${MAKEJOBS}" -c tools2 "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}" ||:
+  >&2 sbs -k --jobs "${MAKEJOBS}" -c tools2 "${SYMBIAN_BUILD_TOOLS2_BUILDS[@]}" ||:
 &>/dev/null popd

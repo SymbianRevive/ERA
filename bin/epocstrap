@@ -33,7 +33,6 @@ _cleanup () {
 _err () {
   >&2 echo "Error $1 occurred at line $2 in script \"$3\""
   _cleanup || :
-  exit "$1"
 }
 
 _int () {
@@ -262,7 +261,7 @@ if (( 512 * _AVAIL_SIZE < _NEEDS_SIZE )) ; then
   exit 1
 fi
 
->&2 sudo mount -o loop,relatime,X-mount.idmap=b:0:"$(id -u "${USER}")":1 "${_EPOCROOT_IMAGE}" "${EPOCROOT}"
+>&2 sudo mount -t ext4 -o "loop,relatime,X-mount.idmap=b:0:$(id -u):1" "${_EPOCROOT_IMAGE}" "${EPOCROOT}"
 
 mkdir -p "${EPOCROOT}"/epoc32/sbs_config
 mkdir -p "${EPOCROOT}"/epoc32/tools
