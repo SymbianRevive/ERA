@@ -2,25 +2,40 @@
 
 The **E**POC**R**OOT **A**ssistant
 
-Currently, EPOCstrap can create a mountable filesystem image containing
-an EPOCROOT that is fully usable from Linux.
+Currently, EPOCstrap can create a disk image containing an EPOCROOT filesystem that is fully usable from Linux.
 
-== Requirements
+== Obtaining prebuilt toolchains
 
-- GCC 13.3 or earlier (must be present in PATH)
+Please see https://symbianrevive.xyz/ for binary releases of ERA.
+
+== Building ERA from source
+
+ERA is currently built primarily against Ubuntu Linux 24.04.
+Other distributions are likely to work, provided that build requirements are met.
+
+=== Requirements
+
+- Multilib environment with EM64T and IA32 support
+- GCC 13.3 or earlier (must be present in PATH; GCC 13.4 and later versions are known to not work yet)
 - Working Internet connection
 - Recent version of the Bash shell
-- Linux kernel with support for idmaps (all standard kernels since at least major version 6.x include it)
+- Linux kernel with support for idmaps (all standard kernels since _at least_:the major version 6.x include it)
 
-Any requirements deemed required at runtime will be displayed on the screen
+CAUTION: ERA does **not** currently check system _library_ requirements;
+those are primarily just zlib, libc and libstdcxx, each installed for both architectures.
 
-== Installation
+Any requirements deemed required at runtime will be displayed on the screen.
+
+NOTE: In case you're using a distribution that prunes development parts of its binary packages (such as Debian, Ubuntu, Fedora, etc.),
+make sure to install the appropriate dev/devel suffixed packages for **everything** in your system that is missing those parts.
+
+=== Installation
 
 ----
 $ git clone --single-branch https://github.com/SymbianRevive/ERA.git era/
 $ cd era/
 $ bin/epocstrap -h
-$ bin/epocstrap -r ~/epocroot.ext4 modern-gcc
+$ bin/epocstrap -d -r ~/epocroot.ext4 modern-gcc
 ----
 
-Then, follow the instructions display on screen.
+Follow the instructions displayed on your screen for guidance in case of failures.
