@@ -1,41 +1,47 @@
 = ERA
 
-The **E**POC**R**OOT **A**ssistant
+The **E**POC**R**OOT **A**ssistant, now containerizable in Podman and Docker!
 
-Currently, EPOCstrap can create a disk image containing an EPOCROOT filesystem that is fully usable from Linux.
+ERA is the Linux toolchain for Symbian mobile development by **SymbianRevive**.
 
-== Obtaining prebuilt toolchains
+_At minimum_, all Symbian versions based on EKA2 are expected to be supported, with primary focus on Belle and later.
 
-Please see https://symbianrevive.xyz/ for binary releases of ERA.
+== Usage
 
-== Building ERA from source
+Basic understanding of containerized workflow in software development is assumed.
 
-ERA is currently built primarily against Ubuntu Linux 24.04.
-Other distributions are likely to work, provided that build requirements are met.
+Please note that all commands require appending of `+--device=/dev/fuse --cap-add=SYS_ADMIN+`,
+as the case-folding tool relies on the FUSE kernel driver interface (`+/dev/fuse+`) to operate.
+Additionally, `+CAP_SYS_ADMIN+` is required to drive FUSE from within a Podman/Docker container.
 
-=== Requirements
+If this is not acceptable for your use case, check out the `+image+` branch that runs as a virtualized appliance instead.
 
-- Multilib environment with EM64T and IA32 support
-- GCC 13.3 or earlier (must be present in PATH; GCC 13.4 and later versions are known to not work yet)
-- Working Internet connection
-- Recent version of the Bash shell
-- Linux kernel with support for idmaps (all standard kernels since _at least_ the major version 6.x include it)
+=== Examples
 
-CAUTION: ERA does **not** currently check system _library_ requirements;
-those are primarily just zlib, libc and libstdcxx, each installed for both architectures.
+==== Simple build and test
 
-Any requirements deemed required at runtime will be displayed on the screen.
-
-NOTE: In case you're using a distribution that prunes development parts of its binary packages (such as Debian, Ubuntu, Fedora, etc.),
-make sure to install the appropriate dev/devel suffixed packages for **everything** in your system that is missing those parts.
-
-=== Installation
+Build and tag image using Podman:
 
 ----
-$ git clone --single-branch https://github.com/SymbianRevive/ERA.git era/
-$ cd era/
-$ bin/epocstrap -h
-$ bin/epocstrap -d -r ~/epocroot.ext4 modern-gcc
+# cd ERA/
+# podman build --device=/dev/fuse --cap-add=SYS_ADMIN -t era:latest .
 ----
 
-Follow the instructions displayed on your screen for guidance in case of failures.
+Interactive Z Shell inside a mounted host directory:
+
+----
+# podman run --device=/dev/fuse --cap-add=SYS_ADMIN --rm -it -v .:/src -w /src era:latest
+----
+
+You will probably want to make sure to extract any binary artifacts from EPOCROOT back into your host machine.
+
+==== Using ERA to build MCPE Symbian Edition
+
+----
+# git clone "${MCPE_VITA_GIT_URL:?replace this with git repo url}" -b v1.0.7 minecraftpe-vita
+# cd minecraftpe-vita
+# podman run --device=/dev/fuse --cap-add SYS_ADMIN --userns=keep-id --rm \
+  -v ".:/src:idmap=uids=$(id -u)-1001-1" -w /src \
+  era:latest \
+  zsh -c 'sbs -j8 -c armv6 -b handheld/project/symbian/group/bld.inf && handheld/project/symbian/group/makesis.sh'
+----

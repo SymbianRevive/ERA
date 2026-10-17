@@ -1,4 +1,0 @@
-= ERA scripts for reproducible EPOCROOT images
-
-These scripts are mainly intended for build-time transparency;
-non-maintainers should use prebuilt OVF (.ova) VM images instead.
